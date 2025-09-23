@@ -39,13 +39,13 @@ const GRADIENTS: [string, string][] = [
 ];
 
 export default function EmojiPage() {
-  // Continuous slider 0..100
-  const [continuousValue, setContinuousValue] = useState(75); // start near "okay"
+  // Continuous 0..100 slider value
+  const [continuousValue, setContinuousValue] = useState(75);
   const moodIndex = Math.min(4, Math.max(0, Math.round(continuousValue / 25)));
   const mood = useMemo(() => MOODS[moodIndex], [moodIndex]);
   const colors = GRADIENTS[moodIndex];
 
-  // Pulse animation on snap
+  // Emoji pulse on snap
   const scale = useRef(new Animated.Value(1)).current;
   const pulse = () => {
     Animated.sequence([
@@ -61,6 +61,16 @@ export default function EmojiPage() {
         easing: Easing.inOut(Easing.quad),
         useNativeDriver: true,
       }),
+    ]).start();
+  };
+
+  // Save button animation + state
+  const [saved, setSaved] = useState(false);
+  const btnScale = useRef(new Animated.Value(1)).current;
+  const animateBtn = () => {
+    Animated.sequence([
+      Animated.spring(btnScale, { toValue: 0.96, useNativeDriver: true }),
+      Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }),
     ]).start();
   };
 
@@ -85,12 +95,14 @@ export default function EmojiPage() {
     };
   };
 
-  // Smooth drag: update only the continuous value; derive mood visuals from it
-  const onSlide = (v: number) => setContinuousValue(v); // light for smoothness [web:311]
+  // Smooth drag: update local only; reset saved label when user drags
+  const onSlide = (v: number) => {
+    if (saved) setSaved(false);
+    setContinuousValue(v);
+  };
   const onSlideEnd = (v: number) => {
     pulse();
-    const bucket = Math.round(v / 25);
-    // Optional: notify store with entryOf(bucket)
+    // Optional: notify store with entryOf(Math.round(v/25))
   };
 
   const nowText = (() => {
@@ -108,8 +120,9 @@ export default function EmojiPage() {
   })();
 
   const handleSave = () => {
-    const entry = entryOf(moodIndex);
-    // TODO: persist entry
+    animateBtn();
+    // TODO: persist entryOf(moodIndex)
+    setSaved(true);
   };
   const handleHistory = () => {
     // TODO: navigate to history
@@ -126,19 +139,19 @@ export default function EmojiPage() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Big translucent word */}
+          {/* Large translucent word */}
           <Text numberOfLines={1} adjustsFontSizeToFit style={styles.bigWord}>
             {mood.word}
           </Text>
 
-          {/* Huge centered emoji slightly overlapping the word */}
+          {/* Huge emoji slightly overlapping the word */}
           <View style={styles.centerWrap} pointerEvents="none">
             <Animated.Text style={[styles.emoji, { transform: [{ scale }] }]}>
               {mood.emoji}
             </Animated.Text>
           </View>
 
-          {/* Continuous slider, lifted above bottom pills */}
+          {/* Continuous slider above the dock */}
           <View style={styles.sliderZone}>
             <View style={styles.rail} pointerEvents="none">
               <View style={styles.railInner} />
@@ -156,19 +169,24 @@ export default function EmojiPage() {
             />
           </View>
 
-          {/* Bottom dock inside the card */}
+          {/* Bottom dock with two pill rows */}
           <View style={styles.bottomDock}>
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>
                 I’m feeling <Text style={styles.pillStrong}>{mood.label}</Text>
               </Text>
-              <Pressable
-                style={styles.pillBtn}
-                onPress={handleSave}
-                hitSlop={8}
-              >
-                <Text style={styles.pillBtnText}>SAVE</Text>
-              </Pressable>
+
+              <Animated.View style={{ transform: [{ scale: btnScale }] }}>
+                <Pressable
+                  style={styles.pillBtn}
+                  onPress={handleSave}
+                  hitSlop={8}
+                >
+                  <Text style={styles.pillBtnText}>
+                    {saved ? "SAVED" : "SAVE"}
+                  </Text>
+                </Pressable>
+              </Animated.View>
             </View>
 
             <View style={styles.pillRow}>
@@ -189,7 +207,7 @@ export default function EmojiPage() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: "#F6F5F2" }, // safe area wrapper [web:105]
+  safe: { flex: 1, backgroundColor: "#F6F5F2" },
   page: { flex: 1, justifyContent: "center", paddingHorizontal: 16 },
 
   card: {
@@ -243,8 +261,8 @@ const styles = StyleSheet.create({
     bottom: 148,
     height: 60,
     justifyContent: "center",
-    zIndex: 3, // ensure above pills [web:321]
-    elevation: 3, // Android stacking [web:326]
+    zIndex: 3,
+    elevation: 3,
   },
   slider: { position: "absolute", left: 0, right: 0, height: 60 },
 
