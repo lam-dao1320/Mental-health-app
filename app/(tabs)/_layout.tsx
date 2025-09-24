@@ -1,9 +1,8 @@
-import { Tabs } from "expo-router";
-import React from "react";
-
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
+import { Tabs } from "expo-router";
+import React from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function TabLayout() {
@@ -16,7 +15,7 @@ export default function TabLayout() {
   return (
     <SafeAreaView
       style={{ flex: 1, backgroundColor: palette.barBg }}
-      edges={["top", "bottom"]}
+      edges={["top"]}
     >
       <Tabs
         screenOptions={{
@@ -60,20 +59,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
-          name="diary"
-          options={{
-            title: "Diary",
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="book.fill" color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
           name="history"
           options={{
             title: "History",
             tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="filemenu.and.cursorarrow" color={color} />
+              <IconSymbol
+                size={28}
+                name="filemenu.and.cursorarrow"
+                color={color}
+              />
             ),
           }}
         />

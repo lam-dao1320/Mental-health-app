@@ -7,7 +7,6 @@ console.log("MoodSlider is", typeof MoodSlider); // should be "function"
 export default function EmojiPage() {
   return (
     <View style={{ flex: 1 }}>
-      {/* <MoodPicker /> */}
       <MoodSlider />
     </View>
   );

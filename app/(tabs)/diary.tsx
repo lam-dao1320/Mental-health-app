@@ -11,7 +11,6 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 const MAX_LEN = 500; // set undefined to remove hard cap [web:380]
 const MIN_LEN = 0; // basic minimum for validation
@@ -44,79 +43,77 @@ export default function DiaryPage() {
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined} // keep buttons visible on iOS [web:388]
-      >
-        {/* Tap anywhere outside the input to dismiss the keyboard */}
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={s.container}>
-            <Text style={s.title}>Diary</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined} // keep buttons visible on iOS [web:388]
+    >
+      {/* Tap anywhere outside the input to dismiss the keyboard */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View style={s.container}>
+          <Text style={s.title}>Diary</Text>
 
-            <View style={[s.card, s.shadow]}>
-              <TextInput
-                style={s.input}
-                multiline
-                value={text}
-                onChangeText={setText}
-                placeholder={placeholder}
-                placeholderTextColor="rgba(0,0,0,0.35)"
-                textAlignVertical="top" // top-align on Android too [web:373]
-                maxLength={typeof MAX_LEN === "number" ? MAX_LEN : undefined} // hard limit [web:380]
-                autoCorrect
-                autoCapitalize="sentences"
-                returnKeyType="default"
-                blurOnSubmit={false}
-              />
+          <View style={[s.card, s.shadow]}>
+            <TextInput
+              style={s.input}
+              multiline
+              value={text}
+              onChangeText={setText}
+              placeholder={placeholder}
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              textAlignVertical="top" // top-align on Android too [web:373]
+              maxLength={typeof MAX_LEN === "number" ? MAX_LEN : undefined} // hard limit [web:380]
+              autoCorrect
+              autoCapitalize="sentences"
+              returnKeyType="default"
+              blurOnSubmit={false}
+            />
 
-              <View style={s.helperRow}>
-                <Text style={[s.helper, tooShort && s.warn]}>
-                  {tooShort
-                    ? `Add at least ${MIN_LEN} characters.`
-                    : "Tip: Just write freely, don't worry about grammar."}
+            <View style={s.helperRow}>
+              <Text style={[s.helper, tooShort && s.warn]}>
+                {tooShort
+                  ? `Add at least ${MIN_LEN} characters.`
+                  : "Tip: Just write freely, don't worry about grammar."}
+              </Text>
+
+              {typeof MAX_LEN === "number" && (
+                <Text
+                  style={[
+                    s.counter,
+                    remaining !== undefined && remaining <= 40
+                      ? s.counterLow
+                      : null,
+                  ]}
+                >
+                  {text.length}/{MAX_LEN}
                 </Text>
-
-                {typeof MAX_LEN === "number" && (
-                  <Text
-                    style={[
-                      s.counter,
-                      remaining !== undefined && remaining <= 40
-                        ? s.counterLow
-                        : null,
-                    ]}
-                  >
-                    {text.length}/{MAX_LEN}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={s.actions}>
-              <Pressable
-                style={[s.btn, s.btnGhost]}
-                onPress={() => {
-                  setText("");
-                  Keyboard.dismiss();
-                }}
-                hitSlop={8}
-              >
-                <Text style={s.btnGhostText}>Clear</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.btn, canSave ? s.btnPrimary : s.btnDisabled]}
-                onPress={onSave}
-                disabled={!canSave}
-                hitSlop={8}
-              >
-                <Text style={s.btnPrimaryText}>Save entry</Text>
-              </Pressable>
+              )}
             </View>
           </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+          <View style={s.actions}>
+            <Pressable
+              style={[s.btn, s.btnGhost]}
+              onPress={() => {
+                setText("");
+                Keyboard.dismiss();
+              }}
+              hitSlop={8}
+            >
+              <Text style={s.btnGhostText}>Clear</Text>
+            </Pressable>
+
+            <Pressable
+              style={[s.btn, canSave ? s.btnPrimary : s.btnDisabled]}
+              onPress={onSave}
+              disabled={!canSave}
+              hitSlop={8}
+            >
+              <Text style={s.btnPrimaryText}>Save entry</Text>
+            </Pressable>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
