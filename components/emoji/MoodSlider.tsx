@@ -1,5 +1,6 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
 import Slider from "@react-native-community/slider";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
@@ -32,11 +33,20 @@ const MOODS = [
 ];
 
 const GRADIENTS: [string, string][] = [
-  ["#b72323ff", "#C01212"],
-  ["#FF5151", "#D63031"],
-  ["#FFA049", "#F07C1F"],
-  ["#FFC95A", "#F2A34F"],
-  ["#FF7EB3", "#FF6A88"],
+  // 0 angry — unchanged (warm strawberry → deep rose)
+  ["#F49790", "#E06A6A"],
+
+  // 1 sad — unchanged (mint → teal)
+  ["#ACD1C9", "#7CB7AB"],
+
+  // 2 low — solid F9F9FB (brand background)
+  ["#d6ed81ff", "#d6ed81ff"],
+
+  // 3 okay — unchanged (peach → coral)
+  ["#F4CA90", "#F49790"],
+
+  // 4 great — solid F49790 (salmon)
+  ["#F49790", "#F49790"],
 ];
 
 export default function EmojiPage() {
@@ -105,6 +115,16 @@ export default function EmojiPage() {
     // TODO: navigate to history
   };
   const handleGoDiary = () => router.push("/diary"); // navigate [web:475]
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // bucket 3 ("okay") corresponds to 75 on the 0..100 scale
+      setContinuousValue(75);
+      setSaved(false);
+      // no cleanup required
+      return undefined;
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
