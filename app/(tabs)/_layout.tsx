@@ -69,6 +69,15 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="history"
+          options={{
+            title: "History",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="filemenu.and.cursorarrow" color={color} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="setting"
           options={{
             title: "Settings",
