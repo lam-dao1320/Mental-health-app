@@ -1,98 +1,243 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+// app/(tabs)/index.tsx — MindLog Home
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { router } from "expo-router";
+import React from "react";
+import {
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const goEmoji = () => router.push("/Emoji");
+  const goDiary = () => router.push("/diary");
+  const goHistory = () => router.push("/history");
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9F9FB" />
+
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.welcomeText}>Welcome to MindLog</Text>
+          <Text style={styles.subtitleText}>
+            Track moods, jot thoughts, and see gentle trends
+          </Text>
+        </View>
+
+        {/* Quick Actions */}
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity style={styles.actionCard} onPress={goEmoji}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}
+            >
+              <Ionicons name="happy" size={40} color="#ACD1C9" />
+            </View>
+            <Text style={styles.actionTitle}>Log mood</Text>
+            <Text style={styles.actionDescription}>
+              Pick an emoji and save today’s feeling
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={goDiary}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#FFF3F1" }]}
+            >
+              <Ionicons name="create" size={40} color="#F49790" />
+            </View>
+            <Text style={styles.actionTitle}>Write diary</Text>
+            <Text style={styles.actionDescription}>
+              Capture a short note or reflection
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={goHistory}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#FFF7E9" }]}
+            >
+              <Ionicons name="time" size={40} color="#F4CA90" />
+            </View>
+            <Text style={styles.actionTitle}>View history</Text>
+            <Text style={styles.actionDescription}>
+              Browse past entries and moods
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Features */}
+        <View style={styles.featuresContainer}>
+          <Text style={styles.featuresTitle}>Why MindLog?</Text>
+
+          <View style={styles.featureItem}>
+            <Ionicons name="pulse" size={24} color="#ACD1C9" />
+            <Text style={styles.featureText}>Quick emoji mood logging</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <Ionicons name="document-text" size={24} color="#F49790" />
+            <Text style={styles.featureText}>Simple, focused diary input</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <Ionicons name="trending-up" size={24} color="#F4CA90" />
+            <Text style={styles.featureText}>Weekly trends at a glance</Text>
+          </View>
+
+          <View style={styles.featureItem}>
+            <Ionicons name="lock-closed" size={24} color="#ACD1C9" />
+            <Text style={styles.featureText}>Private by default</Text>
+          </View>
+        </View>
+
+        {/* CTA */}
+        <TouchableOpacity style={styles.getStartedButton} onPress={goEmoji}>
+          <Text style={styles.getStartedText}>Start logging</Text>
+          <Ionicons name="arrow-forward" size={20} color="white" />
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  // Brand background
+  container: {
+    flex: 1,
+    backgroundColor: "#F9F9FB",
   },
-  stepContainer: {
-    gap: 8,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 30,
+  },
+
+  // Header
+  header: {
+    alignItems: "center",
+    paddingTop: 40,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+  },
+  logo: {
+    width: 420,
+    height: 200,
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+    textAlign: "center",
+    marginBottom: 10,
+    fontFamily: "Noto Sans HK",
+  },
+  subtitleText: {
+    fontSize: 16,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: "Noto Sans HK",
+  },
+
+  // Actions
+  actionsContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  actionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 15,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3.84,
+    elevation: 4,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  actionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1D1D1F",
     marginBottom: 8,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  actionDescription: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 20,
+    fontFamily: "Noto Sans HK",
+  },
+
+  // Features
+  featuresContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  featuresTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+    textAlign: "center",
+    marginBottom: 20,
+    fontFamily: "Noto Sans HK",
+  },
+  featureItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FCFAE1",
+    borderRadius: 15,
+    padding: 15,
+    marginBottom: 10,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  featureText: {
+    fontSize: 16,
+    color: "#1D1D1F",
+    marginLeft: 15,
+    flex: 1,
+    fontFamily: "Noto Sans HK",
+  },
+
+  // CTA
+  getStartedButton: {
+    backgroundColor: "#ACD1C9",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 15,
+    paddingHorizontal: 40,
+    borderRadius: 25,
+    marginHorizontal: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 3.84,
+    elevation: 4,
+  },
+  getStartedText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "white",
+    marginRight: 10,
+    fontFamily: "Noto Sans HK",
   },
 });

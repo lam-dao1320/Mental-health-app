@@ -40,15 +40,7 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
-          name="suggest"
-          options={{
-            title: "Explore",
-            tabBarIcon: ({ color }) => (
-              <IconSymbol size={28} name="paperplane.fill" color={color} />
-            ),
-          }}
-        />
+
         <Tabs.Screen
           name="Emoji"
           options={{
@@ -68,6 +60,15 @@ export default function TabLayout() {
                 name="filemenu.and.cursorarrow"
                 color={color}
               />
+            ),
+          }}
+        />
+        <Tabs.Screen
+          name="suggest"
+          options={{
+            title: "Suggest",
+            tabBarIcon: ({ color }) => (
+              <IconSymbol size={28} name="paperplane.fill" color={color} />
             ),
           }}
         />

@@ -32,7 +32,7 @@ const MOODS = [
 ];
 
 const GRADIENTS: [string, string][] = [
-  ["#FF2B2B", "#C01212"],
+  ["#b72323ff", "#C01212"],
   ["#FF5151", "#D63031"],
   ["#FFA049", "#F07C1F"],
   ["#FFC95A", "#F2A34F"],

@@ -32,10 +32,6 @@ export default function SettingsScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={[styles.screen, { backgroundColor: Colors.lightBg }]}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>SETTINGS</Text>
-        </View>
-
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
             source={{ uri: "https://i.pravatar.cc/200?img=3" }}
