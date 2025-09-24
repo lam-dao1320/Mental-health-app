@@ -80,6 +80,7 @@ export default function TabLayout() {
             ),
           }}
         />
+        <Tabs.Screen name="diary" options={{ href: null }} />
       </Tabs>
     </SafeAreaView>
   );
