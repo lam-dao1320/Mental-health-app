@@ -1,5 +1,5 @@
-// app/(tabs)/diary.tsx  OR  app/diary.tsx
-import React, { useMemo, useState } from "react";
+// app/diary.tsx
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -11,19 +11,37 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
-const MAX_LEN = 500; // set undefined to remove hard cap [web:380]
-const MIN_LEN = 0; // basic minimum for validation
+const CARD_HEIGHT = 360;
+const INPUT_MAX = 200;
+const MAX_LEN = 500;
+const MIN_LEN = 0;
 
 export default function DiaryPage() {
   const [text, setText] = useState("");
+  const [kbVisible, setKbVisible] = useState(false);
 
-  const remaining = useMemo(() => {
-    if (typeof MAX_LEN !== "number") return undefined;
-    return Math.max(0, MAX_LEN - text.length);
-  }, [text]);
+  // Detect keyboard open/close
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKbVisible(true)
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKbVisible(false)
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []); // keyboard listeners [web:585][web:396]
 
+  const remaining = useMemo(
+    () =>
+      typeof MAX_LEN === "number"
+        ? Math.max(0, MAX_LEN - text.length)
+        : undefined,
+    [text]
+  );
   const tooShort = text.trim().length < MIN_LEN;
   const overMax = typeof MAX_LEN === "number" && text.length > MAX_LEN;
   const canSave = !tooShort && !overMax && text.trim().length > 0;
@@ -33,119 +51,130 @@ export default function DiaryPage() {
 
   const onSave = () => {
     if (!canSave) return;
-    const entry = {
-      text: text.trim(),
-      createdAt: new Date().toISOString(),
-      length: text.trim().length,
-    };
-    // TODO: persist entry (AsyncStorage/DB), then clear/navigate
+    // TODO: persist entry
     setText("");
     Keyboard.dismiss();
   };
 
   return (
-    <SafeAreaView style={s.safe} edges={["top", "bottom"]}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined} // keep buttons visible on iOS [web:388]
-      >
-        {/* Tap anywhere outside the input to dismiss the keyboard */}
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-          <View style={s.container}>
-            <Text style={s.title}>Diary</Text>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#F9F9FB" }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <View
+          style={[s.container, kbVisible ? s.containerTop : s.containerCenter]}
+        >
+          {/* Hide the big title when keyboard is visible */}
+          <Text style={s.header}>Diary</Text>
 
-            <View style={[s.card, s.shadow]}>
-              <TextInput
-                style={s.input}
-                multiline
-                value={text}
-                onChangeText={setText}
-                placeholder={placeholder}
-                placeholderTextColor="rgba(0,0,0,0.35)"
-                textAlignVertical="top" // top-align on Android too [web:373]
-                maxLength={typeof MAX_LEN === "number" ? MAX_LEN : undefined} // hard limit [web:380]
-                autoCorrect
-                autoCapitalize="sentences"
-                returnKeyType="default"
-                blurOnSubmit={false}
-              />
+          <View style={[s.card, s.shadow]}>
+            <TextInput
+              style={s.input}
+              multiline
+              scrollEnabled
+              value={text}
+              onChangeText={setText}
+              placeholder={placeholder}
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              textAlignVertical="top"
+              maxLength={MAX_LEN}
+              autoCorrect
+              autoCapitalize="sentences"
+              returnKeyType="default"
+              blurOnSubmit={false}
+            />
 
-              <View style={s.helperRow}>
-                <Text style={[s.helper, tooShort && s.warn]}>
-                  {tooShort
-                    ? `Add at least ${MIN_LEN} characters.`
-                    : "Tip: Just write freely, don't worry about grammar."}
-                </Text>
+            <View style={s.helperRow}>
+              <Text style={[s.helper, tooShort && s.warn]}>
+                {tooShort
+                  ? `Add at least ${MIN_LEN} characters.`
+                  : "Tip: Just write freely, don't worry about grammar."}
+              </Text>
 
-                {typeof MAX_LEN === "number" && (
-                  <Text
-                    style={[
-                      s.counter,
-                      remaining !== undefined && remaining <= 40
-                        ? s.counterLow
-                        : null,
-                    ]}
-                  >
-                    {text.length}/{MAX_LEN}
-                  </Text>
-                )}
-              </View>
-            </View>
-
-            <View style={s.actions}>
-              <Pressable
-                style={[s.btn, s.btnGhost]}
-                onPress={() => {
-                  setText("");
-                  Keyboard.dismiss();
-                }}
-                hitSlop={8}
+              <Text
+                style={[
+                  s.counter,
+                  remaining !== undefined && remaining <= 40
+                    ? s.counterLow
+                    : null,
+                ]}
               >
-                <Text style={s.btnGhostText}>Clear</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.btn, canSave ? s.btnPrimary : s.btnDisabled]}
-                onPress={onSave}
-                disabled={!canSave}
-                hitSlop={8}
-              >
-                <Text style={s.btnPrimaryText}>Save entry</Text>
-              </Pressable>
+                {text.length}/{MAX_LEN}
+              </Text>
             </View>
           </View>
-        </TouchableWithoutFeedback>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+
+          <View style={s.actions}>
+            <Pressable
+              style={[s.btn, s.btnGhost]}
+              onPress={() => {
+                setText("");
+                Keyboard.dismiss();
+              }}
+              hitSlop={8}
+            >
+              <Text style={s.btnGhostText}>Clear</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                s.btn,
+                canSave ? s.btnPrimary : s.btnDisabled,
+                pressed && { opacity: 0.9 },
+              ]}
+              onPress={onSave}
+              disabled={!canSave}
+              hitSlop={8}
+            >
+              <Text style={s.btnPrimaryText}>Save entry</Text>
+            </Pressable>
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
-const Colors = {
-  bg: "#F6F5F2",
-  card: "#FFFFFF",
-  text: "#1D1D1F",
-  sub: "#6B7280",
-  border: "rgba(0,0,0,0.08)",
-  primary: "#4C8BF5",
-};
-
 const s = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg }, // safe areas [web:388]
-  container: { flex: 1, padding: 16 },
-  title: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: Colors.text,
+  container: {
+    flex: 1,
+    backgroundColor: "#F9F9FB",
+    paddingHorizontal: 15,
+    gap: 16,
+  },
+  // Center everything when keyboard is closed
+  containerCenter: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Push to top when keyboard opens
+  containerTop: {
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 24,
+  },
+
+  header: {
+    color: "black",
+    fontFamily: "Noto Sans HK",
+    fontWeight: "bold",
+    fontSize: 35,
     marginBottom: 12,
+    alignSelf: "stretch",
+    textAlign: "left",
+    marginLeft: 15,
   },
 
   card: {
-    flex: 1,
-    backgroundColor: Colors.card,
+    height: CARD_HEIGHT,
+    backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: "rgba(0,0,0,0.08)",
     padding: 12,
+    flexDirection: "column",
+    alignSelf: "stretch",
   },
   shadow: {
     shadowColor: "#000",
@@ -156,11 +185,14 @@ const s = StyleSheet.create({
   },
 
   input: {
-    flex: 1,
+    flexGrow: 0,
+    maxHeight: INPUT_MAX,
+    minHeight: 110,
     fontSize: 16,
-    color: Colors.text,
+    color: "#1D1D1F",
     padding: 12,
     borderRadius: 12,
+    fontFamily: "Noto Sans HK",
   },
 
   helperRow: {
@@ -169,14 +201,19 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 6,
     paddingBottom: 4,
+    marginTop: "auto", // anchor to bottom inside card
   },
-  helper: { fontSize: 12, color: Colors.sub },
+  helper: { fontSize: 12, color: "#6B7280", fontFamily: "Noto Sans HK" },
   warn: { color: "#DC2626" },
-
-  counter: { fontSize: 12, color: Colors.sub },
+  counter: { fontSize: 12, color: "#6B7280", fontFamily: "Noto Sans HK" },
   counterLow: { color: "#EF4444" },
 
-  actions: { flexDirection: "row", gap: 10, marginTop: 12 },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    alignSelf: "stretch",
+    marginBottom: 12,
+  },
   btn: {
     flex: 1,
     paddingVertical: 12,
@@ -184,10 +221,18 @@ const s = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-  btnPrimary: { backgroundColor: Colors.primary, borderColor: Colors.primary },
-  btnDisabled: { backgroundColor: "#C7D2FE", borderColor: "#C7D2FE" },
-  btnPrimaryText: { color: "#FFFFFF", fontWeight: "800" },
+  btnPrimary: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnDisabled: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnPrimaryText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontFamily: "Noto Sans HK",
+  },
 
-  btnGhost: { backgroundColor: Colors.card, borderColor: Colors.border },
-  btnGhostText: { color: Colors.text, fontWeight: "700" },
+  btnGhost: { backgroundColor: "#FFFFFF", borderColor: "rgba(0,0,0,0.08)" },
+  btnGhostText: {
+    color: "#1D1D1F",
+    fontWeight: "700",
+    fontFamily: "Noto Sans HK",
+  },
 });

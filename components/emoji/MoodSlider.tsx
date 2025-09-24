@@ -1,6 +1,8 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
 import Slider from "@react-native-community/slider";
+import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import React, { useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -23,22 +25,33 @@ type MoodEntry = {
 };
 
 const MOODS = [
-  { emoji: "😡", label: "angry", word: "ANGRY" }, // 0
-  { emoji: "😢", label: "sad", word: "SAD" }, // 1
-  { emoji: "😔", label: "low", word: "BAD" }, // 2
-  { emoji: "😊", label: "okay", word: "OKAY" }, // 3
-  { emoji: "😄", label: "great", word: "GREAT" }, // 4
+  { emoji: "😡", label: "angry", word: "ANGRY" },
+  { emoji: "😢", label: "sad", word: "SAD" },
+  { emoji: "😔", label: "low", word: "BAD" },
+  { emoji: "😊", label: "okay", word: "OKAY" },
+  { emoji: "😄", label: "great", word: "GREAT" },
 ];
 
 const GRADIENTS: [string, string][] = [
-  ["#FF2B2B", "#C01212"],
-  ["#FF5151", "#D63031"],
-  ["#FFA049", "#F07C1F"],
-  ["#FFC95A", "#F2A34F"],
-  ["#FF7EB3", "#FF6A88"],
+  // 0 angry — unchanged (warm strawberry → deep rose)
+  ["#F49790", "#E06A6A"],
+
+  // 1 sad — unchanged (mint → teal)
+  ["#ACD1C9", "#7CB7AB"],
+
+  // 2 low — solid F9F9FB (brand background)
+  ["#d6ed81ff", "#d6ed81ff"],
+
+  // 3 okay — unchanged (peach → coral)
+  ["#F4CA90", "#F49790"],
+
+  // 4 great — solid F49790 (salmon)
+  ["#F49790", "#F49790"],
 ];
 
 export default function EmojiPage() {
+  const router = useRouter(); // inside component [web:83]
+
   // Continuous 0..100 slider value
   const [continuousValue, setContinuousValue] = useState(75);
   const moodIndex = Math.min(4, Math.max(0, Math.round(continuousValue / 25)));
@@ -74,36 +87,11 @@ export default function EmojiPage() {
     ]).start();
   };
 
-  const entryOf = (bucket: number): MoodEntry => {
-    const now = new Date();
-    const b = Math.min(4, Math.max(0, bucket));
-    return {
-      value: b,
-      emoji: MOODS[b].emoji,
-      label: MOODS[b].label,
-      word: MOODS[b].word,
-      timestamp: now.toISOString(),
-      displayDate: now.toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      }),
-      displayTime: now.toLocaleTimeString(undefined, {
-        hour: "numeric",
-        minute: "2-digit",
-      }),
-    };
-  };
-
-  // Smooth drag: update local only; reset saved label when user drags
   const onSlide = (v: number) => {
     if (saved) setSaved(false);
     setContinuousValue(v);
   };
-  const onSlideEnd = (v: number) => {
-    pulse();
-    // Optional: notify store with entryOf(Math.round(v/25))
-  };
+  const onSlideEnd = () => pulse();
 
   const nowText = (() => {
     const d = new Date();
@@ -121,12 +109,22 @@ export default function EmojiPage() {
 
   const handleSave = () => {
     animateBtn();
-    // TODO: persist entryOf(moodIndex)
     setSaved(true);
   };
   const handleHistory = () => {
     // TODO: navigate to history
   };
+  const handleGoDiary = () => router.push("/diary"); // navigate [web:475]
+
+  useFocusEffect(
+    React.useCallback(() => {
+      // bucket 3 ("okay") corresponds to 75 on the 0..100 scale
+      setContinuousValue(75);
+      setSaved(false);
+      // no cleanup required
+      return undefined;
+    }, [])
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -151,7 +149,7 @@ export default function EmojiPage() {
             </Animated.Text>
           </View>
 
-          {/* Continuous slider above the dock */}
+          {/* Slider high enough to clear all three pill rows */}
           <View style={styles.sliderZone}>
             <View style={styles.rail} pointerEvents="none">
               <View style={styles.railInner} />
@@ -169,13 +167,12 @@ export default function EmojiPage() {
             />
           </View>
 
-          {/* Bottom dock with two pill rows */}
-          <View style={styles.bottomDock}>
+          {/* Bottom dock: set pointerEvents to avoid stealing touches above */}
+          <View style={styles.bottomDock} pointerEvents="box-none">
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>
                 I’m feeling <Text style={styles.pillStrong}>{mood.label}</Text>
               </Text>
-
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                 <Pressable
                   style={styles.pillBtn}
@@ -190,13 +187,24 @@ export default function EmojiPage() {
             </View>
 
             <View style={styles.pillRow}>
+              <Text style={styles.pillText}>log wit text</Text>
+              <Pressable
+                style={styles.pillBtn}
+                onPress={handleGoDiary}
+                hitSlop={8}
+              >
+                <Text style={styles.pillBtnText}>DIARY</Text>
+              </Pressable>
+            </View>
+
+            <View style={styles.pillRow}>
               <Text style={styles.pillText}>{nowText}</Text>
               <Pressable
                 style={styles.pillBtn}
                 onPress={handleHistory}
                 hitSlop={8}
               >
-                <Text style={styles.pillBtnText}>VIEW HISTORY</Text>
+                <Text style={styles.pillBtnText}>HISTORY</Text>
               </Pressable>
             </View>
           </View>
@@ -206,12 +214,24 @@ export default function EmojiPage() {
   );
 }
 
+const BOTTOM_DOCK_ROWS = 3;
+const DOCK_ROW_HEIGHT = 48; // approx row height including padding
+const DOCK_GAP = 10; // gap between rows
+const DOCK_PADDING = 12; // bottom padding
+
+// Reserve enough vertical space above the dock for the slider:
+const RESERVED_BOTTOM =
+  BOTTOM_DOCK_ROWS * DOCK_ROW_HEIGHT +
+  (BOTTOM_DOCK_ROWS - 1) * DOCK_GAP +
+  DOCK_PADDING +
+  20;
+
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F6F5F2" },
   page: { flex: 1, justifyContent: "center", paddingHorizontal: 16 },
 
   card: {
-    height: 480,
+    height: 520, // slightly taller to fit 3 rows
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 18,
@@ -254,11 +274,12 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 10 },
   },
 
+  // Slider lifted by RESERVED_BOTTOM to avoid overlap with all pill rows
   sliderZone: {
     position: "absolute",
     left: 14,
     right: 14,
-    bottom: 148,
+    bottom: RESERVED_BOTTOM,
     height: 60,
     justifyContent: "center",
     zIndex: 3,
@@ -284,7 +305,7 @@ const styles = StyleSheet.create({
     left: 12,
     right: 12,
     bottom: 12,
-    gap: 10,
+    gap: DOCK_GAP,
     zIndex: 1,
   },
   pillRow: {
@@ -295,6 +316,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 10,
+    minHeight: DOCK_ROW_HEIGHT,
   },
   pillText: { flex: 1, color: "rgba(255,255,255,0.95)", fontSize: 16 },
   pillStrong: { color: "#FFEEA9", fontWeight: "800" },
