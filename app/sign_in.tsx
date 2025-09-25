@@ -9,6 +9,7 @@ export default function SignIn() {
 
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [confirmedPassword, setConfirmedPassword] = useState("");
     const [isSignIn, setIsSignIn] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -18,6 +19,10 @@ export default function SignIn() {
     useEffect(() => {
         
     }, [])
+
+    const handleAuth = async () => {
+
+    }
     
     return (
         <View style={styles.container}>
@@ -44,6 +49,18 @@ export default function SignIn() {
                     onChangeText={setPassword}
                     secureTextEntry
                 />
+
+                {!isSignIn &&
+                <>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Confirmed Password"
+                        value={confirmedPassword}
+                        onChangeText={setConfirmedPassword}
+                        secureTextEntry
+                    />
+                </>
+                }
 
                 <TouchableOpacity>
                     {loading ? (
