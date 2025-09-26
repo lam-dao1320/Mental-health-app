@@ -32,7 +32,7 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
-          <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
+          {/* <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}
             >
@@ -42,7 +42,7 @@ export default function HomeScreen() {
             <Text style={styles.actionDescription}>
               Short, private questionnaire
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <TouchableOpacity style={styles.actionCard} onPress={goEmoji}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}
