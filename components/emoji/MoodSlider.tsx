@@ -6,6 +6,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Easing,
   Keyboard,
@@ -186,13 +187,34 @@ export default function EmojiPage() {
     // TODO: persist entry
     const newRecord = {
       mood: mood.label,
-      date: "23 Sep 2025 (Tue)",
+      date: nowText,
       body: textDiary,
     };
     console.log(newRecord);
     setTextDiary("");
     Keyboard.dismiss();
   };
+
+  // handle close window
+  const handleClose = () => {
+    Alert.alert(
+      "Are you sure?",
+      "Your diary is unsaved. Do you want to leave without saving?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel", // iOS-style bold cancel
+          onPress: () => {}, // Do nothing
+        },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: () => setIsOpen(false), // Close modal
+        },
+      ],
+      { cancelable: true }
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -244,7 +266,7 @@ export default function EmojiPage() {
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                 <Pressable
                   style={styles.pillBtn}
-                  onPress={handleGoDiary}
+                  onPress={handleSave}
                   hitSlop={8}
                 >
                   <Text style={styles.pillBtnText}>
@@ -271,8 +293,12 @@ export default function EmojiPage() {
               visible={isOpen}
               onRequestClose={() => setIsOpen(false)} // Android back button
             >
-              <View style={styles.modalOverlay}>
-                <View style={styles.modalContainer}>
+              <Pressable 
+                style={styles.modalOverlay}
+                onPress={handleClose}>
+                <Pressable 
+                  style={styles.modalContainer}
+                  onPress={(e) => e.stopPropagation()}>
                   <ScrollView>
                   <KeyboardAvoidingView
                         style={{ flex: 1, backgroundColor: "#F9F9FB" }}
@@ -283,7 +309,7 @@ export default function EmojiPage() {
                             style={[styles.container, kbVisible ? styles.containerTop : styles.containerCenter]}
                           >
                             <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', padding: 10 }}>
-                            <TouchableOpacity onPress={() => setIsOpen(false)}>
+                            <TouchableOpacity onPress={handleClose}>
                               <AntDesign name="close" size={24} color="black" />
                             </TouchableOpacity>
                             </View>
@@ -356,8 +382,8 @@ export default function EmojiPage() {
                         </TouchableWithoutFeedback>
                       </KeyboardAvoidingView>
                   </ScrollView>
-                </View>
-              </View>
+                </Pressable>
+              </Pressable>
             </Modal>
 
             <View style={styles.pillRow}>
