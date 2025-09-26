@@ -1,5 +1,5 @@
 import { useUserContext } from "@/context/authContext";
-import { signUp } from "@/lib/supabase_auth";
+import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -8,16 +8,36 @@ export default function SignIn() {
 
     const { user, session, signIn } = useUserContext();
 
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
+    const [step, setStep] = useState(1);
+
+    const [email, setEmail] = useState("lam.dao@edu.sait.ca");
+    const [password, setPassword] = useState("Lam1234");
     const [confirmedPassword, setConfirmedPassword] = useState("");
+
+    const [firstName,setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
+    const [birthDate, setBirthDate] = useState(new Date());
+
     const [isSignIn, setIsSignIn] = useState(true);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const router = useRouter();
 
-    const registerUser = async () => {
+    const newProfile = {
+        first_name: '',
+        last_name: '',
+        email: email || '',
+        birth_date: null,
+        country: '',
+    }
+
+    const handleNext = () => {
+        if (step < 2) setStep(step + 1);
+        else router.push('/');
+    }
+
+    const handleSignUp = async () => {
         if (!email || !password || !confirmedPassword) {
             setError("All fields are required");
             return;
@@ -30,6 +50,8 @@ export default function SignIn() {
         setError(null);
         try {
             await signUp(email, password);
+            handleNext();
+            setIsSignIn(!isSignIn);
         } catch (err: any) {
             setError(err instanceof Error ? err.message : "Registration failed");
         } finally {
@@ -42,19 +64,44 @@ export default function SignIn() {
             setError("Email and password are required");
             return;
         }
-        setLoading;(true);
+        setLoading(true);
         setError(null);
         try {
             if (isSignIn) {
                 await signIn(email, password);
-                router.push('/');
+                if (step == 0) router.push('/');
+                else handleNext();
             } else {
-                await registerUser();
+                await handleSignUp();
             } 
         } catch (err) {
+            console.log(email, " ", password);
             setError(err instanceof Error ? err.message : "Authentication failed");
         } finally {
             setLoading(false);
+        }
+    }
+
+    const handleForgotPassword = async () => {
+        if (!email) {
+            setError("Email is required")
+            return;
+        }
+        setLoading(true);
+        setError(null);
+        try {
+            await forgotPassword(email);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Resetting password failed");
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    const handleRegisterUser = async () => {
+        if (!firstName || !lastName) {
+            setError("Name is required");
+            return;
         }
     }
     
@@ -62,6 +109,9 @@ export default function SignIn() {
         <View style={styles.container}>
             <Text style={styles.welcomeText}>Welcome to Mindlog</Text>
             <Text style={styles.subtitleText}>Please sign in to continue</Text>
+
+            {/* Sign In and Sign Up */}
+            {step == 0 && 
             <View style={{flex: 1,  padding: 20, justifyContent: "center"}}>
                 <Text style={styles.title}>{isSignIn ? "Sign In" : "Sign Up"}</Text>
 
@@ -121,7 +171,66 @@ export default function SignIn() {
                     </Text>
                 </TouchableOpacity>
 
+                {isSignIn &&
+                <TouchableOpacity
+                    onPress={handleForgotPassword}
+                    style={styles.switchModeButton}
+                >
+                    <Text style={styles.switchModeText}>
+                        Forgot your password?
+                    </Text>
+                </TouchableOpacity>
+                }
             </View>
+            }
+            {/* Step 1: Confirmed Email */}
+            {step == 1 &&
+            <View style={{flex: 1,  padding: 20, justifyContent: "center"}}>
+                <Text style={styles.title}>Confirmed Your Email</Text>
+
+                {error && <Text style={styles.errorText}>{error}</Text>}
+
+                <TouchableOpacity
+                    style={styles.button}
+                    onPress={handleAuth}
+                    disabled={loading}
+                >
+                    {loading ? (
+                        <ActivityIndicator color="#ffffff" />
+                    ) : (
+                        <Text style={styles.buttonText}>
+                            Yes, I confirmed
+                        </Text>
+                    )}
+                </TouchableOpacity>
+
+            </View>
+            }
+            {/* Step 2: Fill in User Information */}
+            {step ==2 &&
+            <View style={{flex: 1,  padding: 20, justifyContent: "center"}}>
+                <Text style={styles.title}>Create Your Account</Text>
+
+                {error && <Text style={styles.errorText}>{error}</Text>}
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="First name"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                />
+
+                <TextInput
+                    style={styles.input}
+                    placeholder="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                />
+            </View>
+            }
         </View>
     );
 }

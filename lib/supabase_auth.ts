@@ -45,3 +45,9 @@ export const getSession = async () => {
     }
     return session;
 };
+
+export const forgotPassword = async (email: string) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw error;
+    return data;
+}

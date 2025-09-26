@@ -89,6 +89,7 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
+        console.log(email, password);
         try {
             const { data, error } = await supabase.auth.signInWithPassword({email, password});
             if (error) {
