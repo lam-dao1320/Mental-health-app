@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
-
 interface UserContextType {
     user: User | null;
     session: Session | null;
@@ -32,6 +31,7 @@ interface UserContextProviderProps { children: ReactNode }
 export const UserContextProvider = ({ children } : UserContextProviderProps) => {
     const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
+    // const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const router = useRouter();
