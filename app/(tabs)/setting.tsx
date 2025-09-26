@@ -63,13 +63,13 @@ export default function SettingsScreen() {
             onPress={() => router.push("/")}
           />
           <Divider />
-          <SectionRow
+          {/* <SectionRow
             chipBg="#FFF3F1"
             iconColor={Colors.salmon}
             icon="apps"
             label="App and services"
             onPress={() => router.push("/")}
-          />
+          /> */}
           <Divider />
           <SectionRow
             chipBg="#EAF6F2"

@@ -1,5 +1,5 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
-import { AntDesign } from '@expo/vector-icons';
+import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -20,7 +20,7 @@ import {
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -132,8 +132,6 @@ export default function EmojiPage() {
     setSaved(true);
   };
   const handleHistory = () => router.push("/history"); // TODO: navigate to history
-    
-  const handleGoDiary = () => router.push("/diary"); // navigate [web:475]
 
   useFocusEffect(
     React.useCallback(() => {
@@ -145,14 +143,14 @@ export default function EmojiPage() {
     }, [])
   );
 
-  // 
+  //
   const handleDiaryToggle = () => {
-    if(!isOpen) {
+    if (!isOpen) {
       setIsOpen(true);
     } else {
       setIsOpen(false);
     }
-  }
+  };
 
   // Detect keyboard open/close
   useEffect(() => {
@@ -214,7 +212,7 @@ export default function EmojiPage() {
       ],
       { cancelable: true }
     );
-  }
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -277,7 +275,7 @@ export default function EmojiPage() {
             </View>
 
             <View style={styles.pillRow}>
-              <Text style={styles.pillText}>log wit text</Text>
+              <Text style={styles.pillText}>log with text</Text>
               <Pressable
                 style={styles.pillBtn}
                 onPress={handleDiaryToggle}
@@ -293,94 +291,114 @@ export default function EmojiPage() {
               visible={isOpen}
               onRequestClose={() => setIsOpen(false)} // Android back button
             >
-              <Pressable 
-                style={styles.modalOverlay}
-                onPress={handleClose}>
-                <Pressable 
+              <Pressable style={styles.modalOverlay} onPress={handleClose}>
+                <Pressable
                   style={styles.modalContainer}
-                  onPress={(e) => e.stopPropagation()}>
+                  onPress={(e) => e.stopPropagation()}
+                >
                   <ScrollView>
-                  <KeyboardAvoidingView
-                        style={{ flex: 1, backgroundColor: "#F9F9FB" }}
-                        behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    <KeyboardAvoidingView
+                      style={{ flex: 1, backgroundColor: "#F9F9FB" }}
+                      behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    >
+                      <TouchableWithoutFeedback
+                        onPress={Keyboard.dismiss}
+                        accessible={false}
                       >
-                        <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>                          
+                        <View
+                          style={[
+                            styles.container,
+                            kbVisible
+                              ? styles.containerTop
+                              : styles.containerCenter,
+                          ]}
+                        >
                           <View
-                            style={[styles.container, kbVisible ? styles.containerTop : styles.containerCenter]}
+                            style={{
+                              width: "100%",
+                              flexDirection: "row",
+                              justifyContent: "flex-end",
+                              alignItems: "flex-end",
+                              padding: 10,
+                            }}
                           >
-                            <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'flex-end', padding: 10 }}>
                             <TouchableOpacity onPress={handleClose}>
                               <AntDesign name="close" size={24} color="black" />
                             </TouchableOpacity>
-                            </View>
-                            {/* <Button title="Close" onPress={() => setIsOpen(false)} /> */}
-                            <Text style={styles.header}>Diary</Text>
-                            
-                  
-                            <View style={[styles.diaryCard, styles.diaryShadow]}>
-                              <TextInput
-                                style={styles.input}
-                                multiline
-                                scrollEnabled
-                                value={textDiary}
-                                onChangeText={setTextDiary}
-                                placeholder={placeholder}
-                                placeholderTextColor="rgba(0,0,0,0.35)"
-                                textAlignVertical="top"
-                                maxLength={MAX_LEN}
-                                autoCorrect
-                                autoCapitalize="sentences"
-                                returnKeyType="default"
-                              />
-                  
-                              <View style={styles.helperRow}>
-                                <Text style={[styles.helper, tooShort && styles.warn]}>
-                                  {tooShort
-                                    ? `Add at least ${MIN_LEN} characters.`
-                                    : "Tip: Just write freely, don't worry about grammar."}
-                                </Text>
-                  
-                                <Text
-                                  style={[
-                                    styles.counter,
-                                    remaining !== undefined && remaining <= 40
-                                      ? styles.counterLow
-                                      : null,
-                                  ]}
-                                >
-                                  {textDiary.length}/{MAX_LEN}
-                                </Text>
-                              </View>
-                            </View>
-                  
-                            <View style={styles.actions}>
-                              <Pressable
-                                style={[styles.btn, styles.btnGhost]}
-                                onPress={() => {
-                                  setTextDiary("");
-                                  Keyboard.dismiss();
-                                }}
-                                hitSlop={8}
+                          </View>
+                          {/* <Button title="Close" onPress={() => setIsOpen(false)} /> */}
+                          <Text style={styles.header}>Diary</Text>
+
+                          <View style={[styles.diaryCard, styles.diaryShadow]}>
+                            <TextInput
+                              style={styles.input}
+                              multiline
+                              scrollEnabled
+                              value={textDiary}
+                              onChangeText={setTextDiary}
+                              placeholder={placeholder}
+                              placeholderTextColor="rgba(0,0,0,0.35)"
+                              textAlignVertical="top"
+                              maxLength={MAX_LEN}
+                              autoCorrect
+                              autoCapitalize="sentences"
+                              returnKeyType="default"
+                            />
+
+                            <View style={styles.helperRow}>
+                              <Text
+                                style={[styles.helper, tooShort && styles.warn]}
                               >
-                                <Text style={styles.btnGhostText}>Clear</Text>
-                              </Pressable>
-                  
-                              <Pressable
-                                style={({ pressed }) => [
-                                  styles.btn,
-                                  canSave ? styles.btnPrimary : styles.btnDisabled,
-                                  pressed && { opacity: 0.9 },
+                                {tooShort
+                                  ? `Add at least ${MIN_LEN} characters.`
+                                  : "Tip: Just write freely, don't worry about grammar."}
+                              </Text>
+
+                              <Text
+                                style={[
+                                  styles.counter,
+                                  remaining !== undefined && remaining <= 40
+                                    ? styles.counterLow
+                                    : null,
                                 ]}
-                                onPress={onSave}
-                                disabled={!canSave}
-                                hitSlop={8}
                               >
-                                <Text style={styles.btnPrimaryText}>Save entry</Text>
-                              </Pressable>
+                                {textDiary.length}/{MAX_LEN}
+                              </Text>
                             </View>
                           </View>
-                        </TouchableWithoutFeedback>
-                      </KeyboardAvoidingView>
+
+                          <View style={styles.actions}>
+                            <Pressable
+                              style={[styles.btn, styles.btnGhost]}
+                              onPress={() => {
+                                setTextDiary("");
+                                Keyboard.dismiss();
+                              }}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.btnGhostText}>Clear</Text>
+                            </Pressable>
+
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.btn,
+                                canSave
+                                  ? styles.btnPrimary
+                                  : styles.btnDisabled,
+                                pressed && { opacity: 0.9 },
+                              ]}
+                              onPress={onSave}
+                              disabled={!canSave}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.btnPrimaryText}>
+                                Save entry
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </KeyboardAvoidingView>
                   </ScrollView>
                 </Pressable>
               </Pressable>
@@ -521,21 +539,21 @@ const styles = StyleSheet.create({
   // pop up window
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // semi-transparent background
-    justifyContent: 'center',
-    alignItems: 'center'
+    backgroundColor: "rgba(0,0,0,0.5)", // semi-transparent background
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalContainer: {
-    width: '90%',
+    width: "90%",
     padding: 10,
-    backgroundColor: '#F9F9FB',
+    backgroundColor: "#F9F9FB",
     borderRadius: 10,
-    elevation: 10 // Android shadow
+    elevation: 10, // Android shadow
   },
   modalText: {
     marginBottom: 20,
-    textAlign: 'center',
-    fontSize: 16
+    textAlign: "center",
+    fontSize: 16,
   },
   //Text diary
   container: {
