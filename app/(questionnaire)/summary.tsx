@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import {
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -60,7 +59,6 @@ export default function Summary() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9F9FB" />
       <ScrollView contentContainerStyle={styles.centerScroll}>
         <Text style={styles.title}>Check‑in Summary</Text>
 
