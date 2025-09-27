@@ -1,13 +1,7 @@
 // app/(questionnaire)/index.tsx
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
-import {
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Intro() {
   const start = () => {
@@ -19,7 +13,6 @@ export default function Intro() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9F9FB" />
       <Text style={styles.title}>MindLog Check‑in</Text>
       <Text style={styles.subtitle}>
         A short, gentle screening to spot trends
