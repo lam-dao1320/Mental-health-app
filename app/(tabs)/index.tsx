@@ -15,6 +15,7 @@ export default function HomeScreen() {
   const goEmoji = () => router.push("/Emoji");
   const goDiary = () => router.push("/diary");
   const goHistory = () => router.push("/history");
+  const goCheckin = () => router.push("/(questionnaire)");
 
   return (
     <View style={styles.container}>
@@ -31,6 +32,17 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.actionsContainer}>
+          {/* <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}
+            >
+              <Ionicons name="help-circle" size={40} color="#ACD1C9" />
+            </View>
+            <Text style={styles.actionTitle}>Mental check‑in</Text>
+            <Text style={styles.actionDescription}>
+              Short, private questionnaire
+            </Text>
+          </TouchableOpacity> */}
           <TouchableOpacity style={styles.actionCard} onPress={goEmoji}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}

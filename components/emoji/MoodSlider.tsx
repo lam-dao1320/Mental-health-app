@@ -1,15 +1,25 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
+import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Easing,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -49,8 +59,18 @@ const GRADIENTS: [string, string][] = [
   ["#F49790", "#F49790"],
 ];
 
+const CARD_HEIGHT = 360;
+const INPUT_MAX = 200;
+const MAX_LEN = 500;
+const MIN_LEN = 0;
+
 export default function EmojiPage() {
   const router = useRouter(); // inside component [web:83]
+
+  // toggle for text diary
+  const [isOpen, setIsOpen] = useState(false);
+  const [textDiary, setTextDiary] = useState("");
+  const [kbVisible, setKbVisible] = useState(false);
 
   // Continuous 0..100 slider value
   const [continuousValue, setContinuousValue] = useState(75);
@@ -111,10 +131,7 @@ export default function EmojiPage() {
     animateBtn();
     setSaved(true);
   };
-  const handleHistory = () => {
-    // TODO: navigate to history
-  };
-  const handleGoDiary = () => router.push("/diary"); // navigate [web:475]
+  const handleHistory = () => router.push("/history"); // TODO: navigate to history
 
   useFocusEffect(
     React.useCallback(() => {
@@ -125,6 +142,77 @@ export default function EmojiPage() {
       return undefined;
     }, [])
   );
+
+  //
+  const handleDiaryToggle = () => {
+    if (!isOpen) {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  };
+
+  // Detect keyboard open/close
+  useEffect(() => {
+    const show = Keyboard.addListener("keyboardDidShow", () =>
+      setKbVisible(true)
+    );
+    const hide = Keyboard.addListener("keyboardDidHide", () =>
+      setKbVisible(false)
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []); // keyboard listeners [web:585][web:396]
+
+  const remaining = useMemo(
+    () =>
+      typeof MAX_LEN === "number"
+        ? Math.max(0, MAX_LEN - textDiary.length)
+        : undefined,
+    [textDiary]
+  );
+  const tooShort = textDiary.trim().length < MIN_LEN;
+  const overMax = typeof MAX_LEN === "number" && textDiary.length > MAX_LEN;
+  const canSave = !tooShort && !overMax && textDiary.trim().length > 0;
+
+  const placeholder =
+    "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
+
+  const onSave = () => {
+    if (!canSave) return;
+    // TODO: persist entry
+    const newRecord = {
+      mood: mood.label,
+      date: nowText,
+      body: textDiary,
+    };
+    console.log(newRecord);
+    setTextDiary("");
+    Keyboard.dismiss();
+  };
+
+  // handle close window
+  const handleClose = () => {
+    Alert.alert(
+      "Are you sure?",
+      "Your diary is unsaved. Do you want to leave without saving?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel", // iOS-style bold cancel
+          onPress: () => {}, // Do nothing
+        },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: () => setIsOpen(false), // Close modal
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -187,15 +275,134 @@ export default function EmojiPage() {
             </View>
 
             <View style={styles.pillRow}>
-              <Text style={styles.pillText}>log wit text</Text>
+              <Text style={styles.pillText}>log with text</Text>
               <Pressable
                 style={styles.pillBtn}
-                onPress={handleGoDiary}
+                onPress={handleDiaryToggle}
                 hitSlop={8}
               >
                 <Text style={styles.pillBtnText}>DIARY</Text>
               </Pressable>
             </View>
+
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={isOpen}
+              onRequestClose={() => setIsOpen(false)} // Android back button
+            >
+              <Pressable style={styles.modalOverlay} onPress={handleClose}>
+                <Pressable
+                  style={styles.modalContainer}
+                  onPress={(e) => e.stopPropagation()}
+                >
+                  <ScrollView>
+                    <KeyboardAvoidingView
+                      style={{ flex: 1, backgroundColor: "#F9F9FB" }}
+                      behavior={Platform.OS === "ios" ? "padding" : undefined}
+                    >
+                      <TouchableWithoutFeedback
+                        onPress={Keyboard.dismiss}
+                        accessible={false}
+                      >
+                        <View
+                          style={[
+                            styles.container,
+                            kbVisible
+                              ? styles.containerTop
+                              : styles.containerCenter,
+                          ]}
+                        >
+                          <View
+                            style={{
+                              width: "100%",
+                              flexDirection: "row",
+                              justifyContent: "flex-end",
+                              alignItems: "flex-end",
+                              padding: 10,
+                            }}
+                          >
+                            <TouchableOpacity onPress={handleClose}>
+                              <AntDesign name="close" size={24} color="black" />
+                            </TouchableOpacity>
+                          </View>
+                          {/* <Button title="Close" onPress={() => setIsOpen(false)} /> */}
+                          <Text style={styles.header}>Diary</Text>
+
+                          <View style={[styles.diaryCard, styles.diaryShadow]}>
+                            <TextInput
+                              style={styles.input}
+                              multiline
+                              scrollEnabled
+                              value={textDiary}
+                              onChangeText={setTextDiary}
+                              placeholder={placeholder}
+                              placeholderTextColor="rgba(0,0,0,0.35)"
+                              textAlignVertical="top"
+                              maxLength={MAX_LEN}
+                              autoCorrect
+                              autoCapitalize="sentences"
+                              returnKeyType="default"
+                            />
+
+                            <View style={styles.helperRow}>
+                              <Text
+                                style={[styles.helper, tooShort && styles.warn]}
+                              >
+                                {tooShort
+                                  ? `Add at least ${MIN_LEN} characters.`
+                                  : "Tip: Just write freely, don't worry about grammar."}
+                              </Text>
+
+                              <Text
+                                style={[
+                                  styles.counter,
+                                  remaining !== undefined && remaining <= 40
+                                    ? styles.counterLow
+                                    : null,
+                                ]}
+                              >
+                                {textDiary.length}/{MAX_LEN}
+                              </Text>
+                            </View>
+                          </View>
+
+                          <View style={styles.actions}>
+                            <Pressable
+                              style={[styles.btn, styles.btnGhost]}
+                              onPress={() => {
+                                setTextDiary("");
+                                Keyboard.dismiss();
+                              }}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.btnGhostText}>Clear</Text>
+                            </Pressable>
+
+                            <Pressable
+                              style={({ pressed }) => [
+                                styles.btn,
+                                canSave
+                                  ? styles.btnPrimary
+                                  : styles.btnDisabled,
+                                pressed && { opacity: 0.9 },
+                              ]}
+                              onPress={onSave}
+                              disabled={!canSave}
+                              hitSlop={8}
+                            >
+                              <Text style={styles.btnPrimaryText}>
+                                Save entry
+                              </Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      </TouchableWithoutFeedback>
+                    </KeyboardAvoidingView>
+                  </ScrollView>
+                </Pressable>
+              </Pressable>
+            </Modal>
 
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>{nowText}</Text>
@@ -329,4 +536,119 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.55)",
   },
   pillBtnText: { color: "#FFFFFF", fontWeight: "900", letterSpacing: 1 },
+  // pop up window
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)", // semi-transparent background
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContainer: {
+    width: "90%",
+    padding: 10,
+    backgroundColor: "#F9F9FB",
+    borderRadius: 10,
+    elevation: 10, // Android shadow
+  },
+  modalText: {
+    marginBottom: 20,
+    textAlign: "center",
+    fontSize: 16,
+  },
+  //Text diary
+  container: {
+    flex: 1,
+  },
+  // Center everything when keyboard is closed
+  containerCenter: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Push to top when keyboard opens
+  containerTop: {
+    justifyContent: "flex-start",
+    alignItems: "center",
+    paddingTop: 24,
+  },
+
+  header: {
+    color: "black",
+    fontFamily: "Noto Sans HK",
+    fontWeight: "bold",
+    fontSize: 35,
+    marginBottom: 12,
+    alignSelf: "stretch",
+    textAlign: "left",
+    marginLeft: 15,
+  },
+
+  diaryCard: {
+    height: CARD_HEIGHT,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.08)",
+    paddingVertical: 12,
+    flexDirection: "column",
+    alignSelf: "stretch",
+    marginBottom: 20,
+  },
+  diaryShadow: {
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 3,
+  },
+
+  input: {
+    flexGrow: 0,
+    maxHeight: INPUT_MAX,
+    minHeight: 110,
+    fontSize: 16,
+    color: "#1D1D1F",
+    padding: 12,
+    borderRadius: 12,
+    fontFamily: "Noto Sans HK",
+  },
+
+  helperRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 6,
+    paddingBottom: 4,
+    marginTop: "auto", // anchor to bottom inside card
+  },
+  helper: { fontSize: 12, color: "#6B7280", fontFamily: "Noto Sans HK" },
+  warn: { color: "#DC2626" },
+  counter: { fontSize: 12, color: "#6B7280", fontFamily: "Noto Sans HK" },
+  counterLow: { color: "#EF4444" },
+
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    alignSelf: "stretch",
+    marginBottom: 12,
+  },
+  btn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  btnPrimary: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnDisabled: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnPrimaryText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontFamily: "Noto Sans HK",
+  },
+
+  btnGhost: { backgroundColor: "#FFFFFF", borderColor: "rgba(0,0,0,0.08)" },
+  btnGhostText: {
+    color: "#1D1D1F",
+    fontWeight: "700",
+    fontFamily: "Noto Sans HK",
+  },
 });
