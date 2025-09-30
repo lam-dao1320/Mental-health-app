@@ -11,6 +11,6 @@ export interface DiaryRecord {
     id?: string;
     user_email: string;
     mood: string;
-    date: Date;
+    date?: Date;
     body: string;
 }

@@ -1,4 +1,6 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
+import { useUserContext } from "@/context/authContext";
+import { addDiary } from "@/lib/diary_crud";
 import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
@@ -65,6 +67,8 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function EmojiPage() {
+  const { profile } = useUserContext();
+  // console.log(profile);
   const router = useRouter(); // inside component [web:83]
 
   // toggle for text diary
@@ -180,16 +184,22 @@ export default function EmojiPage() {
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
-  const onSave = () => {
+  const onSave = async () => {
     if (!canSave) return;
     // TODO: persist entry
     const newRecord = {
+      user_email: profile?.email || "",
       mood: mood.label,
-      date: nowText,
       body: textDiary,
     };
-    console.log(newRecord);
-    setTextDiary("");
+    
+    try {
+      await addDiary(newRecord);
+      console.log(newRecord);
+      setTextDiary("");
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : "Authentication failed");
+    }
     Keyboard.dismiss();
   };
 
@@ -259,7 +269,7 @@ export default function EmojiPage() {
           <View style={styles.bottomDock} pointerEvents="box-none">
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>
-                I’m feeling <Text style={styles.pillStrong}>{mood.label}</Text>
+                {profile?.first_name ? `${profile.first_name} is feeling` : "I'm feeling"} <Text style={styles.pillStrong}>{mood.label}</Text>
               </Text>
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                 <Pressable
