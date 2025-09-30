@@ -1,15 +1,18 @@
+import { UserProfile } from "@/lib/object_types";
 import { supabase } from "@/lib/supabase";
-import { Session, User } from "@supabase/supabase-js";
+import { getUserByEmail } from "@/lib/user_crud";
+import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 interface UserContextType {
-    user: User | null;
     session: Session | null;
+    profile: UserProfile | null;
     isLoading: boolean;
     signIn: (email: string, password: string) => Promise<void>;
-    signOut: () => Promise<void>;   
+    signOut: () => Promise<void>;  
+    setProfile: (profile: UserProfile) => void; 
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -29,9 +32,8 @@ export const useUserContext = (): UserContextType => {
 interface UserContextProviderProps { children: ReactNode }
 
 export const UserContextProvider = ({ children } : UserContextProviderProps) => {
-    const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
-    // const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const router = useRouter();
@@ -41,10 +43,8 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
             setIsLoading(true);
             const {data : {session}} = await supabase.auth.getSession();
             setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                // await fetchProfile(session.user.id);
-                console.log(session.user);
+            if (session?.user.email) {               
+                console.log("Email: ", session.user.email);
             } else {
                 router.push('/sign_in');
             }
@@ -52,15 +52,8 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         };
 
         const { data : {subscription} } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
+            async (_event, session) => {
                 setSession(session);
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    // fetchProfile(session.user.id);
-                    console.log(session);
-                } else { 
-                    // setProfile(null);
-                }
             });
 
         initializeAuth();
@@ -69,23 +62,23 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
 
     }, []);
 
-    // const googleSignIn = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         const { data, error } = await supabase.auth.signInWithOAuth({
-    //             provider: 'google',
-    //             options: {
-    //                 redirectTo: '/',
-    //                 // scopes: ['email', 'profile'],
-    //             }
-    //         })
-    //     } catch (error) {
-    //         console.log("Google Sign In Failed", error);
-    //         throw error;
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // }
+    useEffect(() => {
+        const fetchProfile = async () => {
+            if (session?.user.email) {               
+                // console.log("Fetching User Profile: ", session.user);
+                try {
+                    const data = await getUserByEmail(session.user.email);
+                    setProfile(data);
+                } catch (error) {
+                    console.log("Error Initialize Auth: ", error)
+                    throw error;
+                }
+            } else { 
+                setProfile(null);
+            }
+        };
+        fetchProfile();
+    }, [session]);
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
@@ -96,8 +89,6 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
                 throw new Error(error.message);
             }
             setSession(data.session);
-            setUser(data.user);
-
         } catch (error) {
             console.error("Sign-in error:", error);
             throw error;
@@ -114,8 +105,6 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
                 throw new Error(error.message);
             }
             setSession(null);
-            setUser(null);
-
         } catch (error) {
             console.error("Sign-out error: ", error);
             throw error;
@@ -124,7 +113,7 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         }
     };
 
-    const contextValue: UserContextType = { user, session, isLoading, signIn, signOut };
+    const contextValue: UserContextType = { session, profile, setProfile, isLoading, signIn, signOut };
 
     return (
         <UserContext.Provider value={contextValue}>

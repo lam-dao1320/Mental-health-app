@@ -3,14 +3,15 @@ import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { addUser, getUserByEmail } from "../lib/user_crud";
 
 const countries = ["United States", "Canada", "China", "HongKong", "Vietnam", "Korea", "Philippine", "Other"]
 
 export default function SignIn() {
 
-    const { user, session, signIn } = useUserContext();
+    const { setProfile, signIn } = useUserContext();
 
-    const [step, setStep] = useState(1);
+    const [step, setStep] = useState(0);
 
     const [email, setEmail] = useState("lam.dao@edu.sait.ca");
     const [password, setPassword] = useState("Lam1234");
@@ -75,13 +76,14 @@ export default function SignIn() {
         try {
             if (isSignIn) {
                 await signIn(email, password);
-                if (step == 0) router.push('/');
+                const data = await getUserByEmail(email);
+                setProfile(data);
+                if (step == 0) router.push('/(tabs)');
                 else handleNext();
             } else {
                 await handleSignUp();
             } 
         } catch (err) {
-            console.log(email, " ", password);
             setError(err instanceof Error ? err.message : "Authentication failed");
         } finally {
             setLoading(false);
@@ -107,7 +109,7 @@ export default function SignIn() {
     const handleRegisterUser = async () => {
         setError(null);
 
-        if (!firstName || !lastName || !country || !birthDay || !birthMonth || !birthYear) {
+        if (!firstName || !lastName || !country.trim() || !birthDay || !birthMonth || !birthYear) {
             setError("Information is required");
             return;
         }
@@ -152,10 +154,20 @@ export default function SignIn() {
             last_name: lastName,
             email: email,
             birth_date: dateCheck,
-            country: country,
+            country: country.trim(),
         }
+        // console.log(newProfile);
 
-        console.log(newProfile);
+        try {
+            await addUser(newProfile);
+            router.push('/(questionnaire)');
+        } catch (err: any) {
+            if (err.message.toLowerCase().includes("duplicate")) {
+                setError("Email is existed");
+            } else setError("Registration failed");
+        } finally {
+            setLoading(false);
+        }
     }
     
     return (

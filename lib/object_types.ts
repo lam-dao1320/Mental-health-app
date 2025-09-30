@@ -6,3 +6,11 @@ export interface UserProfile {
     birth_date: Date;
     country: string;
 }
+
+export interface DiaryRecord {
+    id?: string;
+    user_email: string;
+    mood: string;
+    date: Date;
+    body: string;
+}
