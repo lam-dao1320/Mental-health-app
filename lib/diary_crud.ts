@@ -6,11 +6,12 @@ export async function getRecordsByEmail(email: string) {
         .from('user_diary')
         .select('*')
         .eq('user_email', email)
-        .order('created_at', { ascending: false })
+        .order('date', { ascending: false })
     if (error) {
         console.error(`Error fetching diary history with user email ${email}: `, error);
         throw error;
     }
+    console.log(data);
     return data;
 }
 

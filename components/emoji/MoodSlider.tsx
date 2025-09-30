@@ -192,11 +192,11 @@ export default function EmojiPage() {
       mood: mood.label,
       body: textDiary,
     };
-    
     try {
       await addDiary(newRecord);
       console.log(newRecord);
       setTextDiary("");
+      setIsOpen(false);
     } catch (err) {
       console.error(err instanceof Error ? err.message : "Authentication failed");
     }
@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   btnPrimary: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
-  btnDisabled: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnDisabled: { backgroundColor: "#acd1c985", borderColor: "#acd1c985" },
   btnPrimaryText: {
     color: "#FFFFFF",
     fontWeight: "800",

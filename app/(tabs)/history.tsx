@@ -1,5 +1,8 @@
 import Card from "@/components/history/card";
-import React from "react";
+import { useUserContext } from "@/context/authContext";
+import { getRecordsByEmail } from "@/lib/diary_crud";
+import { DiaryRecord } from "@/lib/object_types";
+import React, { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 const GRADIENTS: [string, string][] = [
@@ -27,45 +30,6 @@ const EMOJI: Record<string, string> = {
   Great: "😄",
 };
 
-const records = [
-  {
-    id: "1",
-    mood: "Great",
-    date: "23 Sep 2025 (Tue)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "2",
-    mood: "Sad",
-    date: "22 Sep 2025 (Mon)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "3",
-    mood: "Okay",
-    date: "21 Sep 2025 (Sun)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "4",
-    mood: "Sad",
-    date: "20 Sep 2025 (Sat)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "5",
-    mood: "Okay",
-    date: "19 Sep 2025 (Fri)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "6",
-    mood: "Angry",
-    date: "18 Sep 2025 (Thu)",
-    body: "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-];
-
 const moodToIndex = (m: string) => {
   const key = m.toLowerCase();
   if (key === "angry") return 0;
@@ -77,13 +41,45 @@ const moodToIndex = (m: string) => {
 };
 
 export default function HistoryPage() {
+  const { profile } = useUserContext();
+  const [records, setRecords] = useState<DiaryRecord[]>([]);
+
+  console.log("Profile: ", profile);
+  console.log("Record: ", records);
+
+  useEffect(() => {
+    const fetchRecords = async () => {
+      if (profile)
+        try {
+          const data = await getRecordsByEmail(profile.email);
+          setRecords(data);
+        } catch (err) {
+          console.error(err instanceof Error ? err.message : "Authentication failed");
+        }
+    };
+    fetchRecords();
+  }, []);
+
+  const dateFormat = (date: Date) => {
+    let dateText = "";
+    if (date) {
+      const dateObj = new Date(date);
+      const day = dateObj.getDate();
+      const month = dateObj.toLocaleString("en-US", { month: "short" });
+      const year = dateObj.getFullYear();
+      const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
+      dateText = `${day} ${month} ${year} (${weekday})`;
+    }
+    return dateText;
+  }
+  
   return (
     <View style={s.container}>
       <Text style={s.header}>My Mood Log</Text>
-
+      {records.length > 0 &&
       <FlatList
         data={records}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => item.id ?? index.toString()}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => {
           const idx = moodToIndex(item.mood);
@@ -92,9 +88,9 @@ export default function HistoryPage() {
           return (
             <Card
               record={{
-                id: item.id,
+                id: item.id ?? "",
                 moodText: `Mood: ${item.mood} ${emoji}`,
-                dateText: item.date,
+                dateText: item.date ? dateFormat(item.date) : "",
                 bodyText: item.body,
               }}
               gradient={gradient} // let Card paint with LinearGradient
@@ -102,6 +98,7 @@ export default function HistoryPage() {
           );
         }}
       />
+      }
     </View>
   );
 }
