@@ -11,7 +11,6 @@ export async function getRecordsByEmail(email: string) {
         console.error(`Error fetching diary history with user email ${email}: `, error);
         throw error;
     }
-    console.log(data);
     return data;
 }
 

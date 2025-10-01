@@ -83,7 +83,7 @@ export default function PersonalInfoScreen() {
       gad: profile?.gad ?? 0,
     }
 
-    console.log("Update profile: ", updatedProfile);
+    // console.log("Update profile: ", updatedProfile);
     
     try {
       await updateUser(updatedProfile);

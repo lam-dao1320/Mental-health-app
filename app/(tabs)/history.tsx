@@ -41,7 +41,6 @@ const moodToIndex = (m: string) => {
 export default function HistoryPage() {
   const { records } = useUserContext();
 
-
   const dateFormat = (date: Date) => {
     let dateText = "";
     if (date) {
@@ -67,7 +66,6 @@ export default function HistoryPage() {
             const idx = moodToIndex(item.mood);
             const gradient = GRADIENTS[idx];
             const emoji = EMOJI[item.mood as keyof typeof EMOJI] ?? "😊";
-            console.log(item);
             return (
               <Card
                 record={{

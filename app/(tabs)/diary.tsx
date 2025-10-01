@@ -57,7 +57,7 @@ export default function DiaryPage() {
     if (profile) {
       try {
         const data = await getDiaryByEmail(profile.email);
-        console.log(data);
+        // console.log(data);
         setDiaryRecords(data);
       } catch (err: any) {
         Alert.alert("Error", "Registration failed");

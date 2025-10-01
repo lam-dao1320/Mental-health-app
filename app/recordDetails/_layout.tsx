@@ -6,7 +6,7 @@ export default function RecordDetailsLayout() {
     <Stack>
       <Stack.Screen
         name="[id]"
-        options={{ headerShown: false }} // hides the bar for this route
+        options={{ headerShown: false, headerBackButtonDisplayMode: "minimal" }} // hides the bar for this route
       />
     </Stack>
   );
