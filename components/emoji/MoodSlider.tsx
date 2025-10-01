@@ -1,4 +1,6 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
+import { useUserContext } from "@/context/authContext";
+import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
 import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
@@ -65,6 +67,8 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function EmojiPage() {
+  const { profile, records, setRecords } = useUserContext();
+  // console.log(profile);
   const router = useRouter(); // inside component [web:83]
 
   // toggle for text diary
@@ -180,16 +184,36 @@ export default function EmojiPage() {
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
-  const onSave = () => {
+  const fetchRecords = async () => {
+    if (profile)
+      try {
+        const data = await getRecordsByEmail(profile.email);
+        setRecords(data);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : "Authentication failed");
+      }
+  };
+
+  const onSave = async () => {
     if (!canSave) return;
     // TODO: persist entry
     const newRecord = {
+      user_email: profile?.email || "",
       mood: mood.label,
-      date: nowText,
       body: textDiary,
     };
-    console.log(newRecord);
-    setTextDiary("");
+
+    // add new Mood to database
+    try {
+      await addNewRecord(newRecord);
+      fetchRecords();
+      // console.log(newRecord);
+      setTextDiary("");
+      setIsOpen(false);
+      Alert.alert("Success", "Mood is saved");
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : "Authentication failed");
+    }
     Keyboard.dismiss();
   };
 
@@ -207,7 +231,7 @@ export default function EmojiPage() {
         {
           text: "Leave",
           style: "destructive",
-          onPress: () => setIsOpen(false), // Close modal
+          onPress: () => {setIsOpen(false); setTextDiary(""); }, // Close modal
         },
       ],
       { cancelable: true }
@@ -259,7 +283,7 @@ export default function EmojiPage() {
           <View style={styles.bottomDock} pointerEvents="box-none">
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>
-                I’m feeling <Text style={styles.pillStrong}>{mood.label}</Text>
+                {profile?.first_name ? `${profile.first_name} is feeling` : "I'm feeling"} <Text style={styles.pillStrong}>{mood.label}</Text>
               </Text>
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                 <Pressable
@@ -638,7 +662,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   btnPrimary: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
-  btnDisabled: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnDisabled: { backgroundColor: "#acd1c985", borderColor: "#acd1c985" },
   btnPrimaryText: {
     color: "#FFFFFF",
     fontWeight: "800",

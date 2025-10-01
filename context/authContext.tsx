@@ -1,15 +1,24 @@
+import { getDiaryByEmail } from "@/lib/diary_crud";
+import { getRecordsByEmail } from "@/lib/mood_crud";
+import { DiaryRecord, MoodRecord, UserProfile } from "@/lib/object_types";
 import { supabase } from "@/lib/supabase";
-import { Session, User } from "@supabase/supabase-js";
+import { getUserByEmail } from "@/lib/user_crud";
+import { Session } from "@supabase/supabase-js";
 import { useRouter } from "expo-router";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { Alert } from "react-native";
 
 interface UserContextType {
-    user: User | null;
     session: Session | null;
+    profile: UserProfile | null;
+    records: MoodRecord[];
+    diaryRecords: DiaryRecord[];
     isLoading: boolean;
+    setRecords: (data: MoodRecord[]) => void;
+    setDiaryRecords: (data: DiaryRecord[]) => void;
     signIn: (email: string, password: string) => Promise<void>;
-    signOut: () => Promise<void>;   
+    signOut: () => Promise<void>;  
+    setProfile: (profile: UserProfile) => void; 
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -29,22 +38,32 @@ export const useUserContext = (): UserContextType => {
 interface UserContextProviderProps { children: ReactNode }
 
 export const UserContextProvider = ({ children } : UserContextProviderProps) => {
-    const [user, setUser] = useState<User | null>(null);
     const [session, setSession] = useState<Session | null>(null);
-    // const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [records, setRecords] = useState<MoodRecord[]>([]);
+    const [diaryRecords, setDiaryRecords] = useState<DiaryRecord[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const router = useRouter();
 
     useEffect(() => {
+        const fetchProfile = async (email: string) => {
+            try {
+                const data = await getUserByEmail(email);
+                setProfile(data);
+            } catch (error) {
+                console.error("Error fetching profile after sign in: ", error)
+                throw error;
+            }
+        };
+
         const initializeAuth = async () => {
             setIsLoading(true);
             const {data : {session}} = await supabase.auth.getSession();
             setSession(session);
-            setUser(session?.user ?? null);
-            if (session?.user) {
-                // await fetchProfile(session.user.id);
-                console.log(session.user);
+            if (session?.user.email) {               
+                console.log("Email: ", session.user.email);
+                await fetchProfile(session.user.email);
             } else {
                 router.push('/sign_in');
             }
@@ -52,15 +71,8 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         };
 
         const { data : {subscription} } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
+            async (_event, session) => {
                 setSession(session);
-                setUser(session?.user ?? null);
-                if (session?.user) {
-                    // fetchProfile(session.user.id);
-                    console.log(session);
-                } else { 
-                    // setProfile(null);
-                }
             });
 
         initializeAuth();
@@ -69,35 +81,30 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
 
     }, []);
 
-    // const googleSignIn = async () => {
-    //     setIsLoading(true);
-    //     try {
-    //         const { data, error } = await supabase.auth.signInWithOAuth({
-    //             provider: 'google',
-    //             options: {
-    //                 redirectTo: '/',
-    //                 // scopes: ['email', 'profile'],
-    //             }
-    //         })
-    //     } catch (error) {
-    //         console.log("Google Sign In Failed", error);
-    //         throw error;
-    //     } finally {
-    //         setIsLoading(false);
-    //     }
-    // }
+    useEffect(() => {
+        const fetchRecords = async () => {
+            if (profile?.email)
+                try {
+                    const moodData = await getRecordsByEmail(profile.email);
+                    setRecords(moodData);
+                    const diaryData = await getDiaryByEmail(profile.email);
+                    setDiaryRecords(diaryData);
+                } catch (error) {
+                    console.error("Fetching diary error: ", error);
+                    throw error;
+                }
+        };
+        fetchRecords();
+    }, [profile])
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
-        console.log(email, password);
         try {
             const { data, error } = await supabase.auth.signInWithPassword({email, password});
             if (error) {
                 throw new Error(error.message);
             }
             setSession(data.session);
-            setUser(data.user);
-
         } catch (error) {
             console.error("Sign-in error:", error);
             throw error;
@@ -114,8 +121,6 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
                 throw new Error(error.message);
             }
             setSession(null);
-            setUser(null);
-
         } catch (error) {
             console.error("Sign-out error: ", error);
             throw error;
@@ -124,12 +129,11 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         }
     };
 
-    const contextValue: UserContextType = { user, session, isLoading, signIn, signOut };
+    const contextValue: UserContextType = { session, profile, setProfile, records, setRecords, diaryRecords, setDiaryRecords, isLoading, signIn, signOut };
 
     return (
         <UserContext.Provider value={contextValue}>
             {children}
         </UserContext.Provider>
     );
-
 }

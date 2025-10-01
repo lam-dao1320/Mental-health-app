@@ -1,3 +1,5 @@
+import { useUserContext } from "@/context/authContext";
+import { getUserByEmail, updateUser } from "@/lib/user_crud";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -24,14 +26,76 @@ const Colors = {
 const MAX_WIDTH = 560;
 
 export default function PersonalInfoScreen() {
+  const { profile, setProfile } = useUserContext();
   const router = useRouter();
   const maxWidth = Math.min(Dimensions.get("window").width - 32, 560);
 
   // Mock data with editable state
-  const [fullName, setFullName] = useState("KhelWolf");
-  const [email, setEmail] = useState("mikaelonavarro@gmail.com");
-  const [phone, setPhone] = useState("5550005555");
-  const [perferedName, setPerferedName] = useState("Mikael");
+  const [email, setEmail] = useState(profile?.email);
+
+  const [firstName,setFirstName] = useState(profile?.first_name);
+  const [lastName, setLastName] = useState(profile?.last_name);
+  const [country, setCountry] = useState(profile?.country);
+  const [phone, setPhone] = useState(profile?.phone);
+  const [birthDate, setBirthDate] = useState<any>(profile?.birth_date);
+
+  const [error, setError] = useState<string | null>(null);
+
+  
+  const handleSave = async () => {
+    setError(null);
+
+    if (!firstName || !lastName) {
+      setError("Information is required");
+      return;
+    }
+
+    let birthDateCheck = null;
+
+    if (birthDate) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(birthDate)) {
+        setError("Invalid date format (must be YYYY-MM-DD)");
+        return;
+      }
+      const timestamp = Date.parse(birthDate);
+      if (isNaN(timestamp)) {
+        setError(`Could not parse date: ${birthDate}`);
+        return;
+      }
+      const dateCheck = new Date(timestamp);
+      if (dateCheck > new Date()) {
+        setError("Birth date cannot be in the future.");
+        return;
+      }
+
+      birthDateCheck = dateCheck;
+    }
+
+    let updatedProfile = {
+      first_name: firstName ?? "",
+      last_name: lastName ?? "",
+      email: email ?? "",
+      phone: phone ?? "",
+      birth_date: birthDateCheck ?? null,
+      country: country ?? "",
+      phq: profile?.phq ?? 0,
+      gad: profile?.gad ?? 0,
+    }
+
+    console.log("Update profile: ", updatedProfile);
+    
+    try {
+      await updateUser(updatedProfile);
+      if (email) {
+        const profileData = await getUserByEmail(email);
+        setProfile(profileData);
+      }
+      router.back();
+    } catch (err: any) {
+       setError(err instanceof Error ? err.message : "Saving changes failed")
+    } 
+  }
 
   return (
     <ScrollView
@@ -47,6 +111,7 @@ export default function PersonalInfoScreen() {
     >
       <View style={{ width: "100%", maxWidth: MAX_WIDTH }}>
         <Text style={styles.title}>Personal Info</Text>
+        {error && <Text style={styles.errorText}>{error}</Text>}
       </View>
       {/* Form */}
       <View
@@ -56,25 +121,36 @@ export default function PersonalInfoScreen() {
           { width: "100%", maxWidth: MAX_WIDTH },
         ]}
       >
-        <Field label="Full name">
+        <Field label="First name">
           <TextInput
-            value={fullName}
-            onChangeText={setFullName}
-            placeholder="Enter full name"
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="Enter first name"
             placeholderTextColor="rgba(0,0,0,0.35)"
             style={styles.input}
             autoCapitalize="words"
             returnKeyType="next"
           />
         </Field>
-        <Field label="Perfered name">
+        <Field label="Last name">
           <TextInput
-            value={perferedName}
-            onChangeText={setFullName}
-            placeholder="Enter full name"
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Enter last name"
             placeholderTextColor="rgba(0,0,0,0.35)"
             style={styles.input}
             autoCapitalize="words"
+            returnKeyType="next"
+          />
+        </Field>
+        <Field label="Birth Date">
+          <TextInput
+            value={birthDate}
+            onChangeText={setBirthDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor="rgba(0,0,0,0.35)"
+            style={styles.input}
+            autoCapitalize="none"
             returnKeyType="next"
           />
         </Field>
@@ -91,6 +167,7 @@ export default function PersonalInfoScreen() {
             keyboardType="email-address"
             autoCapitalize="none"
             returnKeyType="next"
+            editable={false}
           />
         </Field>
 
@@ -98,10 +175,21 @@ export default function PersonalInfoScreen() {
           <TextInput
             value={phone}
             onChangeText={setPhone}
-            placeholder="+1 (555) 000-0000"
+            placeholder="10 characters"
             placeholderTextColor="rgba(0,0,0,0.35)"
             style={styles.input}
-            keyboardType="phone-pad"
+            keyboardType="numeric"
+            returnKeyType="next"
+          />
+        </Field>
+        <Field label="Country">
+          <TextInput
+            value={country}
+            onChangeText={setCountry}
+            placeholder="e.g., United States"
+            placeholderTextColor="rgba(0,0,0,0.35)"
+            style={styles.input}
+            autoCapitalize="words"
             returnKeyType="done"
           />
         </Field>
@@ -109,7 +197,7 @@ export default function PersonalInfoScreen() {
 
       <Pressable
         style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.95 }]}
-        onPress={() => router.back()}
+        onPress={handleSave}
         hitSlop={8}
       >
         <Ionicons name="checkmark" size={18} color="#fff" />
@@ -208,4 +296,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: "Noto Sans HK",
   },
+  errorText: {
+        color: "#F49790",
+        marginBottom: 15,
+        textAlign: "center",
+        fontFamily: "Noto Sans HK",
+    },
 });
