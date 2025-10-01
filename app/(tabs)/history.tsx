@@ -1,26 +1,17 @@
 import Card from "@/components/history/card";
-import { useUserContext } from "@/context/authContext";
-import React from "react";
+import { supabase } from "@/lib/supabase"; // adjust path
+import { useEffect, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
-const GRADIENTS: [string, string][] = [
-  // 0 angry — blush mist
-  ["#FDE2DF", "#F8CFCF"],
-
-  // 1 sad — mint haze
-  ["#EAF6F2", "#DDEEE9"],
-
-  // 2 low — lemon veil
-  ["#F9F9FB", "#F9F9FB"],
-
-  // 3 okay — peach cloud
-  ["#FBECD7", "#FAD7D0"],
-
-  // 4 great — salmon whisper
-  ["#FCE1DC", "#FCE1DC"],
+const GRADIENTS = [
+  ["#FDE2DF", "#F8CFCF"], // angry
+  ["#EAF6F2", "#DDEEE9"], // sad
+  ["#F9F9FB", "#F9F9FB"], // low
+  ["#FBECD7", "#FAD7D0"], // okay
+  ["#FCE1DC", "#FCE1DC"], // great
 ];
 
-const EMOJI: Record<string, string> = {
+const EMOJI = {
   Angry: "😡",
   Sad: "😢",
   Low: "😔",
@@ -28,7 +19,7 @@ const EMOJI: Record<string, string> = {
   Great: "😄",
 };
 
-const moodToIndex = (m: string) => {
+const moodToIndex = (m) => {
   const key = m.toLowerCase();
   if (key === "angry") return 0;
   if (key === "sad") return 1;
@@ -39,47 +30,77 @@ const moodToIndex = (m: string) => {
 };
 
 export default function HistoryPage() {
-  const { records } = useUserContext();
+  const [records, setRecords] = useState([]);
 
-  const dateFormat = (date: Date) => {
-    let dateText = "";
-    if (date) {
-      const dateObj = new Date(date);
-      const day = dateObj.getDate();
-      const month = dateObj.toLocaleString("en-US", { month: "short" });
-      const year = dateObj.getFullYear();
-      const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
-      dateText = `${day} ${month} ${year} (${weekday})`;
-    }
-    return dateText;
-  }
-  
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase
+        .from("mood_log")
+        .select(
+          `
+          id,
+          mood,
+          date,
+          diary:diary_id (
+            id,
+            body,
+            date
+          )
+        `
+        )
+        .order("date", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+      setRecords(data || []);
+    };
+
+    load();
+  }, []);
+
+  const dateFormat = (date) => {
+    if (!date) return "";
+    const dateObj = new Date(date);
+    const day = dateObj.getDate();
+    const month = dateObj.toLocaleString("en-US", { month: "short" });
+    const year = dateObj.getFullYear();
+    const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
+    return `${day} ${month} ${year} (${weekday})`;
+  };
+
   return (
     <View style={s.container}>
       <Text style={s.header}>My Mood Log</Text>
 
-        <FlatList
-          data={records}
-          keyExtractor={(item, index) => item.id ?? index.toString()}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          renderItem={({ item }) => {
-            const idx = moodToIndex(item.mood);
-            const gradient = GRADIENTS[idx];
-            const emoji = EMOJI[item.mood as keyof typeof EMOJI] ?? "😊";
-            return (
-              <Card
-                record={{
-                  id: item.id ?? "",
-                  moodText: `Mood: ${item.mood} ${emoji}`,
-                  dateText: item.date ? dateFormat(item.date) : "",
-                  bodyText: item.body,
-                }}
-                gradient={gradient} // let Card paint with LinearGradient
-              />
-            );
-          }}
-        />
+      <FlatList
+        data={records}
+        keyExtractor={(item, index) => item.id ?? index.toString()}
+        contentContainerStyle={{ paddingBottom: 24 }}
+        renderItem={({ item }) => {
+          const idx = moodToIndex(item.mood);
+          const gradient = GRADIENTS[idx];
+          const emoji = EMOJI[item.mood] ?? "😊";
 
+          const bodyText = item.diary?.body ?? "(no diary written)";
+          const dateText = item.diary?.date
+            ? dateFormat(item.diary.date)
+            : dateFormat(item.date);
+
+          return (
+            <Card
+              record={{
+                id: item.id ?? "",
+                moodText: `Mood: ${item.mood} ${emoji}`,
+                dateText,
+                bodyText,
+              }}
+              gradient={gradient}
+            />
+          );
+        }}
+      />
     </View>
   );
 }
