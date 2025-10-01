@@ -1,6 +1,6 @@
 // app/(tabs)/emoji.tsx  OR  app/emoji.tsx
 import { useUserContext } from "@/context/authContext";
-import { addDiary } from "@/lib/diary_crud";
+import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
 import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
@@ -67,7 +67,7 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function EmojiPage() {
-  const { profile } = useUserContext();
+  const { profile, records, setRecords } = useUserContext();
   // console.log(profile);
   const router = useRouter(); // inside component [web:83]
 
@@ -184,6 +184,16 @@ export default function EmojiPage() {
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
+  const fetchRecords = async () => {
+    if (profile)
+      try {
+        const data = await getRecordsByEmail(profile.email);
+        setRecords(data);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : "Authentication failed");
+      }
+  };
+
   const onSave = async () => {
     if (!canSave) return;
     // TODO: persist entry
@@ -192,11 +202,15 @@ export default function EmojiPage() {
       mood: mood.label,
       body: textDiary,
     };
+
+    // add new Mood to database
     try {
-      await addDiary(newRecord);
-      console.log(newRecord);
+      await addNewRecord(newRecord);
+      fetchRecords();
+      // console.log(newRecord);
       setTextDiary("");
       setIsOpen(false);
+      Alert.alert("Success", "Mood is saved");
     } catch (err) {
       console.error(err instanceof Error ? err.message : "Authentication failed");
     }
@@ -217,7 +231,7 @@ export default function EmojiPage() {
         {
           text: "Leave",
           style: "destructive",
-          onPress: () => setIsOpen(false), // Close modal
+          onPress: () => {setIsOpen(false); setTextDiary(""); }, // Close modal
         },
       ],
       { cancelable: true }

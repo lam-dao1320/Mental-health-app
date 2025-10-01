@@ -1,4 +1,5 @@
 import { useUserContext } from "@/context/authContext";
+import { getRecordsByEmail } from "@/lib/mood_crud";
 import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -9,12 +10,12 @@ const countries = ["United States", "Canada", "China", "HongKong", "Vietnam", "K
 
 export default function SignIn() {
 
-    const { setProfile, signIn } = useUserContext();
+    const { setProfile, setRecords, signIn } = useUserContext();
 
     const [step, setStep] = useState(0);
 
-    const [email, setEmail] = useState("lam.dao@edu.sait.ca");
-    const [password, setPassword] = useState("Lam1234");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [confirmedPassword, setConfirmedPassword] = useState("");
 
     const [firstName,setFirstName] = useState("");
@@ -82,7 +83,9 @@ export default function SignIn() {
                 else handleNext();
             } else {
                 await handleSignUp();
-            } 
+            }
+            const data = await getRecordsByEmail(email);
+            setRecords(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Authentication failed");
         } finally {

@@ -1,4 +1,6 @@
-import { UserProfile } from "@/lib/object_types";
+import { getDiaryByEmail } from "@/lib/diary_crud";
+import { getRecordsByEmail } from "@/lib/mood_crud";
+import { DiaryRecord, MoodRecord, UserProfile } from "@/lib/object_types";
 import { supabase } from "@/lib/supabase";
 import { getUserByEmail } from "@/lib/user_crud";
 import { Session } from "@supabase/supabase-js";
@@ -9,7 +11,11 @@ import { Alert } from "react-native";
 interface UserContextType {
     session: Session | null;
     profile: UserProfile | null;
+    records: MoodRecord[];
+    diaryRecords: DiaryRecord[];
     isLoading: boolean;
+    setRecords: (data: MoodRecord[]) => void;
+    setDiaryRecords: (data: DiaryRecord[]) => void;
     signIn: (email: string, password: string) => Promise<void>;
     signOut: () => Promise<void>;  
     setProfile: (profile: UserProfile) => void; 
@@ -34,6 +40,8 @@ interface UserContextProviderProps { children: ReactNode }
 export const UserContextProvider = ({ children } : UserContextProviderProps) => {
     const [session, setSession] = useState<Session | null>(null);
     const [profile, setProfile] = useState<UserProfile | null>(null);
+    const [records, setRecords] = useState<MoodRecord[]>([]);
+    const [diaryRecords, setDiaryRecords] = useState<DiaryRecord[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
 
     const router = useRouter();
@@ -70,7 +78,7 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
                     const data = await getUserByEmail(session.user.email);
                     setProfile(data);
                 } catch (error) {
-                    console.log("Error Initialize Auth: ", error)
+                    console.error("Error Initialize Auth: ", error)
                     throw error;
                 }
             } else { 
@@ -79,6 +87,22 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         };
         fetchProfile();
     }, [session]);
+
+    useEffect(() => {
+        const fetchRecords = async () => {
+            if (profile?.email)
+                try {
+                    const moodData = await getRecordsByEmail(profile.email);
+                    setRecords(moodData);
+                    const diaryData = await getDiaryByEmail(profile.email);
+                    setDiaryRecords(diaryData);
+                } catch (error) {
+                    console.error("Fetching diary error: ", error);
+                    throw error;
+                }
+        };
+        fetchRecords();
+    }, [profile])
 
     const signIn = async (email: string, password: string) => {
         setIsLoading(true);
@@ -112,12 +136,11 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         }
     };
 
-    const contextValue: UserContextType = { session, profile, setProfile, isLoading, signIn, signOut };
+    const contextValue: UserContextType = { session, profile, setProfile, records, setRecords, diaryRecords, setDiaryRecords, isLoading, signIn, signOut };
 
     return (
         <UserContext.Provider value={contextValue}>
             {children}
         </UserContext.Provider>
     );
-
 }

@@ -61,7 +61,7 @@ export default function Card({
 const s = StyleSheet.create({
   press: {
     marginHorizontal: 15,
-    marginBottom: 20,
+    marginVertical: 10,
   },
   gradientWrap: {
     borderRadius: 12,

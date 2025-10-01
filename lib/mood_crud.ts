@@ -1,9 +1,9 @@
-import { DiaryRecord } from "./object_types";
+import { MoodRecord } from "./object_types";
 import { supabase } from "./supabase";
 
-export async function getDiaryByEmail(email: string) {
+export async function getRecordsByEmail(email: string) {
     const { data, error} = await supabase
-        .from('diary')
+        .from('mood_log')
         .select('*')
         .eq('user_email', email)
         .order('date', { ascending: false })
@@ -15,9 +15,9 @@ export async function getDiaryByEmail(email: string) {
     return data;
 }
 
-export async function addNewDiary(record: DiaryRecord) {
+export async function addNewRecord(record: MoodRecord) {
     const { data, error } = await supabase
-        .from('diary')
+        .from('mood_log')
         .insert(record)
     if (error) {
         console.log("Error writing diary: ", error);

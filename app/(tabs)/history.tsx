@@ -1,8 +1,6 @@
 import Card from "@/components/history/card";
 import { useUserContext } from "@/context/authContext";
-import { getRecordsByEmail } from "@/lib/diary_crud";
-import { DiaryRecord } from "@/lib/object_types";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 const GRADIENTS: [string, string][] = [
@@ -41,24 +39,8 @@ const moodToIndex = (m: string) => {
 };
 
 export default function HistoryPage() {
-  const { profile } = useUserContext();
-  const [records, setRecords] = useState<DiaryRecord[]>([]);
+  const { records } = useUserContext();
 
-  console.log("Profile: ", profile);
-  console.log("Record: ", records);
-
-  useEffect(() => {
-    const fetchRecords = async () => {
-      if (profile)
-        try {
-          const data = await getRecordsByEmail(profile.email);
-          setRecords(data);
-        } catch (err) {
-          console.error(err instanceof Error ? err.message : "Authentication failed");
-        }
-    };
-    fetchRecords();
-  }, []);
 
   const dateFormat = (date: Date) => {
     let dateText = "";
@@ -76,29 +58,30 @@ export default function HistoryPage() {
   return (
     <View style={s.container}>
       <Text style={s.header}>My Mood Log</Text>
-      {records.length > 0 &&
-      <FlatList
-        data={records}
-        keyExtractor={(item, index) => item.id ?? index.toString()}
-        contentContainerStyle={{ paddingBottom: 24 }}
-        renderItem={({ item }) => {
-          const idx = moodToIndex(item.mood);
-          const gradient = GRADIENTS[idx];
-          const emoji = EMOJI[item.mood as keyof typeof EMOJI] ?? "😊";
-          return (
-            <Card
-              record={{
-                id: item.id ?? "",
-                moodText: `Mood: ${item.mood} ${emoji}`,
-                dateText: item.date ? dateFormat(item.date) : "",
-                bodyText: item.body,
-              }}
-              gradient={gradient} // let Card paint with LinearGradient
-            />
-          );
-        }}
-      />
-      }
+
+        <FlatList
+          data={records}
+          keyExtractor={(item, index) => item.id ?? index.toString()}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          renderItem={({ item }) => {
+            const idx = moodToIndex(item.mood);
+            const gradient = GRADIENTS[idx];
+            const emoji = EMOJI[item.mood as keyof typeof EMOJI] ?? "😊";
+            console.log(item);
+            return (
+              <Card
+                record={{
+                  id: item.id ?? "",
+                  moodText: `Mood: ${item.mood} ${emoji}`,
+                  dateText: item.date ? dateFormat(item.date) : "",
+                  bodyText: item.body,
+                }}
+                gradient={gradient} // let Card paint with LinearGradient
+              />
+            );
+          }}
+        />
+
     </View>
   );
 }

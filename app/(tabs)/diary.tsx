@@ -1,6 +1,9 @@
 // app/diary.tsx
+import { useUserContext } from "@/context/authContext";
+import { addNewDiary, getDiaryByEmail } from "@/lib/diary_crud";
 import React, { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -18,6 +21,7 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function DiaryPage() {
+  const { profile, setDiaryRecords } = useUserContext();
   const [text, setText] = useState("");
   const [kbVisible, setKbVisible] = useState(false);
 
@@ -49,8 +53,35 @@ export default function DiaryPage() {
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
-  const onSave = () => {
+  const fetchDiary = async () => {
+    if (profile) {
+      try {
+        const data = await getDiaryByEmail(profile.email);
+        console.log(data);
+        setDiaryRecords(data);
+      } catch (err: any) {
+        Alert.alert("Error", "Registration failed");
+        console.error(err instanceof Error ? err.message : "Resetting password failed");
+      }
+    }
+  }
+  
+  const onSave = async () => {
     if (!canSave) return;
+    // Add new Diary Record to database
+    let newDiaryRecord = {
+      user_email: profile?.email || "",
+      body: text,
+    }
+    try {
+      await addNewDiary(newDiaryRecord);
+      fetchDiary();
+      Alert.alert("Success", "Diary is saved");
+    } catch (err: any) {
+      if (err.message.toLowerCase().includes("duplicate")) {
+        Alert.alert("Error", "Date is existed");
+      } else Alert.alert("Error", "Registration failed");
+    }
     // TODO: persist entry
     setText("");
     Keyboard.dismiss();
@@ -222,7 +253,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
   },
   btnPrimary: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
-  btnDisabled: { backgroundColor: "#ACD1C9", borderColor: "#ACD1C9" },
+  btnDisabled: { backgroundColor: "#acd1c985", borderColor: "#acd1c985" },
   btnPrimaryText: {
     color: "#FFFFFF",
     fontWeight: "800",

@@ -7,10 +7,17 @@ export interface UserProfile {
     country: string;
 }
 
-export interface DiaryRecord {
+export interface MoodRecord {
     id?: string;
     user_email: string;
     mood: string;
+    date?: Date;
+    body: string;
+}
+
+export interface DiaryRecord {
+    id?: string;
+    user_email: string;
     date?: Date;
     body: string;
 }
