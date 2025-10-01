@@ -15,7 +15,7 @@ import {
 
 export default function Summary() {
   const { profile } = useUserContext();
-  console.log("Profile: ", profile)
+  // console.log("Profile: ", profile)
 
   const { a } = useLocalSearchParams<{ a: string }>();
   const answers = useMemo(() => {
@@ -76,7 +76,7 @@ export default function Summary() {
       gad: gad,
     }
 
-    console.log("Update profile: ", newProfile);
+    // console.log("Update profile: ", newProfile);
 
     try {
       await updateUser(newProfile);

@@ -62,7 +62,7 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
             const {data : {session}} = await supabase.auth.getSession();
             setSession(session);
             if (session?.user.email) {               
-                console.log("Email: ", session.user.email);
+                // console.log("Email: ", session.user.email);
                 await fetchProfile(session.user.email);
             } else {
                 router.push('/sign_in');
@@ -106,7 +106,7 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
             }
             setSession(data.session);
         } catch (error) {
-            console.error("Sign-in error:", error);
+            // console.error("Sign-in error:", error);
             throw error;
         } finally {
             setIsLoading(false);

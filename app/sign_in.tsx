@@ -34,14 +34,6 @@ export default function SignIn() {
 
     const router = useRouter();
 
-    const newProfile = {
-        first_name: '',
-        last_name: '',
-        email: email || '',
-        birth_date: null,
-        country: '',
-    }
-
     const handleNext = () => {
         if (step < 2) setStep(step + 1);
         else router.push('/');
@@ -183,7 +175,7 @@ export default function SignIn() {
             if (err.message.toLowerCase().includes("duplicate")) {
                 setError("Email is existed");
             } else {
-                console.error(err.message);
+                // console.error(err.message);
                 setError("Registration failed");
             }
         } finally {
