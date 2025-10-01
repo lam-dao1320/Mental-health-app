@@ -6,14 +6,19 @@ export async function getRecordsByEmail(email: string) {
     .from("mood_log")
     .select(
       `
-    id,
-    mood,
-    date,
-    diary:diary_id ( id, body, date )
-  `
+        id,
+        mood,
+        date,
+        diary:diary!fk_diary (
+          id,
+          body,
+          date
+        )
+      `
     )
-    .eq("user_email", user_profiles.email)
-    .order("date", { ascending: false });
+    .eq("user_email", email)
+    .order("date", { ascending: false })
+    .limit(50);
 
   if (error) {
     console.error(
@@ -33,9 +38,6 @@ export async function addNewRecord(record: MoodRecord) {
     .select()
     .single();
 
-  if (error) {
-    console.log("Error writing diary: ", error);
-    throw error;
-  }
+  if (error) throw error;
   return data;
 }

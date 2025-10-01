@@ -41,7 +41,7 @@ type MoodEntry = {
 const MOODS = [
   { emoji: "😡", label: "angry", word: "ANGRY" },
   { emoji: "😢", label: "sad", word: "SAD" },
-  { emoji: "😔", label: "low", word: "BAD" },
+  { emoji: "😔", label: "low", word: "LOW" },
   { emoji: "😊", label: "okay", word: "OKAY" },
   { emoji: "😄", label: "great", word: "GREAT" },
 ];
@@ -163,30 +163,30 @@ export default function EmojiPage() {
     if (!profile) return;
 
     try {
-      // fetch latest mood entry
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      // fetch latest mood within 30 mins
       const { data: moods, error: moodErr } = await supabase
         .from("mood_log")
         .select("id, date, diary_id")
         .eq("user_email", profile.email)
+        .gte("date", cutoff)
         .order("date", { ascending: false })
         .limit(1);
 
       if (moodErr) throw moodErr;
       if (!moods || moods.length === 0) {
-        Alert.alert("Error", "No mood entry found. Save a mood first!");
+        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
         return;
       }
 
       const latest = moods[0];
-      const now = new Date();
-      const createdAt = new Date(latest.date);
-      const thirtyMinsAgo = new Date(now.getTime() - 30 * 60 * 1000);
-
-      if (createdAt < thirtyMinsAgo) {
-        Alert.alert("Too late", "No recent mood entry in last 30 minutes.");
+      if (latest.diary_id) {
+        Alert.alert("Error", "This mood already has a diary linked.");
         return;
       }
 
+      // create diary
       // create diary
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")
@@ -194,24 +194,33 @@ export default function EmojiPage() {
           user_email: profile.email,
           body: textDiary,
         })
-        .select("id")
+        .select("id") // ensure ID is returned
         .single();
 
-      if (diaryErr) throw diaryErr;
+      if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
 
-      // update mood_log with diary_id
+      // explicitly update mood_log
       const { error: updateErr } = await supabase
         .from("mood_log")
         .update({ diary_id: diary.id })
-        .eq("id", latest.id);
+        .eq("id", latest.id)
+        .select("id, diary_id"); // force return, so we can debug
 
       if (updateErr) throw updateErr;
+      console.log("✅ mood_log updated:", {
+        moodId: latest.id,
+        linkedDiaryId: diary.id,
+      });
 
       Alert.alert("Success", "Diary linked to recent mood!");
       fetchRecords();
       setTextDiary("");
       setIsOpen(false);
     } catch (err) {
+      Alert.alert(
+        "Error",
+        err instanceof Error ? err.message : "Something went wrong"
+      );
       console.error(err);
     }
     Keyboard.dismiss();

@@ -1,9 +1,10 @@
 import Card from "@/components/history/card";
-import { supabase } from "@/lib/supabase"; // adjust path
-import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
-const GRADIENTS = [
+const GRADIENTS: [string, string][] = [
   ["#FDE2DF", "#F8CFCF"], // angry
   ["#EAF6F2", "#DDEEE9"], // sad
   ["#F9F9FB", "#F9F9FB"], // low
@@ -11,15 +12,16 @@ const GRADIENTS = [
   ["#FCE1DC", "#FCE1DC"], // great
 ];
 
-const EMOJI = {
-  Angry: "😡",
-  Sad: "😢",
-  Low: "😔",
-  Okay: "😊",
-  Great: "😄",
+// store keys in lowercase so we don’t have case mismatch
+const EMOJI: Record<string, string> = {
+  angry: "😡",
+  sad: "😢",
+  low: "😔",
+  okay: "😊",
+  great: "😄",
 };
 
-const moodToIndex = (m) => {
+const moodToIndex = (m: string) => {
   const key = m.toLowerCase();
   if (key === "angry") return 0;
   if (key === "sad") return 1;
@@ -30,37 +32,43 @@ const moodToIndex = (m) => {
 };
 
 export default function HistoryPage() {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState<any[]>([]);
 
-  useEffect(() => {
-    const load = async () => {
-      const { data, error } = await supabase
-        .from("mood_log")
-        .select(
-          `
-          id,
-          mood,
-          date,
-          diary:diary_id (
-            id,
-            body,
-            date
+  // load data whenever page is focused
+  useFocusEffect(
+    useCallback(() => {
+      const load = async () => {
+        const { data, error } = await supabase
+          .from("mood_log")
+          .select(
+            `
+              id,
+              user_email,
+              mood,
+              date,
+              diary:diary!fk_diary (
+                id,
+                body,
+                date
+              )
+            `
           )
-        `
-        )
-        .order("date", { ascending: false });
+          .order("date", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        return;
-      }
-      setRecords(data || []);
-    };
+        if (error) {
+          console.error("Error fetching history:", error);
+          return;
+        }
 
-    load();
-  }, []);
+        console.log("Fetched records:", data); // 👈 debug to see structure
+        setRecords(data || []);
+      };
 
-  const dateFormat = (date) => {
+      load();
+    }, [])
+  );
+
+  const dateFormat = (date: string | null | undefined) => {
     if (!date) return "";
     const dateObj = new Date(date);
     const day = dateObj.getDate();
@@ -76,12 +84,12 @@ export default function HistoryPage() {
 
       <FlatList
         data={records}
-        keyExtractor={(item, index) => item.id ?? index.toString()}
+        keyExtractor={(item, index) => String(item.id ?? index)}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => {
-          const idx = moodToIndex(item.mood);
+          const idx = moodToIndex(item.mood || "");
           const gradient = GRADIENTS[idx];
-          const emoji = EMOJI[item.mood] ?? "😊";
+          const emoji = EMOJI[item.mood?.toLowerCase()] ?? "😊";
 
           const bodyText = item.diary?.body ?? "(no diary written)";
           const dateText = item.diary?.date
@@ -91,7 +99,7 @@ export default function HistoryPage() {
           return (
             <Card
               record={{
-                id: item.id ?? "",
+                id: item.id,
                 moodText: `Mood: ${item.mood} ${emoji}`,
                 dateText,
                 bodyText,
@@ -100,6 +108,11 @@ export default function HistoryPage() {
             />
           );
         }}
+        ListEmptyComponent={
+          <Text style={{ textAlign: "center", marginTop: 40 }}>
+            No mood history yet
+          </Text>
+        }
       />
     </View>
   );
