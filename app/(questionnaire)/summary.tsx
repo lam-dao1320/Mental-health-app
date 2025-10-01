@@ -1,10 +1,12 @@
 // app/(questionnaire)/summary.tsx
+import { useUserContext } from "@/context/authContext";
+import { updateUser } from "@/lib/user_crud";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import {
+  Alert,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,6 +14,9 @@ import {
 } from "react-native";
 
 export default function Summary() {
+  const { profile } = useUserContext();
+  // console.log("Profile: ", profile)
+
   const { a } = useLocalSearchParams<{ a: string }>();
   const answers = useMemo(() => {
     try {
@@ -58,9 +63,31 @@ export default function Summary() {
       ? "Mild (composite)"
       : "Minimal (composite)"; // [web:6][web:169]
 
+  const handleSubmit = async () => {
+
+    let newProfile = {
+      first_name: profile?.first_name ?? "",
+      last_name: profile?.last_name ?? "",
+      email: profile?.email ?? "",
+      phone: profile?.phone ?? "",
+      birth_date: profile?.birth_date ?? null,
+      country: profile?.country ?? "",
+      phq: phq,
+      gad: gad,
+    }
+
+    // console.log("Update profile: ", newProfile);
+
+    try {
+      await updateUser(newProfile);
+      router.push('/(tabs)');
+    } catch (err: any) {
+      Alert.alert("Error", err instanceof Error ? err.message : "Update PHQ and GAD failed")
+    } 
+  }
+
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F9F9FB" />
       <ScrollView contentContainerStyle={styles.centerScroll}>
         <Text style={styles.title}>Check‑in Summary</Text>
 
@@ -94,7 +121,7 @@ export default function Summary() {
 
         <TouchableOpacity
           style={styles.save}
-          onPress={() => router.replace("/(tabs)")}
+          onPress={handleSubmit}
         >
           <Text style={styles.saveText}>Done</Text>
           <Ionicons name="checkmark" size={20} color="white" />

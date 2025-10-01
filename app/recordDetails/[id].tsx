@@ -1,53 +1,9 @@
 "use client";
 
+import { useUserContext } from "@/context/authContext";
 import { useLocalSearchParams } from "expo-router";
 import React, { useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-
-const recordList = [
-  {
-    id: "1",
-    moodText: "Mood: Okay",
-    dateText: "23 Sep 2025 (Tue)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "2",
-    moodText: "Mood: Sad",
-    dateText: "22 Sep 2025 (Mon)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "3",
-    moodText: "Mood: Okay",
-    dateText: "21 Sep 2025 (Sun)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "4",
-    moodText: "Mood: Sad",
-    dateText: "20 Sep 2025 (Sat)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "5",
-    moodText: "Mood: Okay",
-    dateText: "19 Sep 2025 (Fri)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-  {
-    id: "6",
-    moodText: "Mood: Sad",
-    dateText: "18 Sep 2025 (Thu)",
-    bodyText:
-      "Dear Mr. Diary,\n\nIt is a normal day, hanging out with a group of new friends ...",
-  },
-];
 
 const emojiForMood = (text: string) => {
   const t = text.toLowerCase();
@@ -61,10 +17,24 @@ const emojiForMood = (text: string) => {
 
 export default function CardDetails() {
   const { id } = useLocalSearchParams();
+  const { records } = useUserContext();
   const record = useMemo(
-    () => recordList.find((item) => item.id === String(id)),
+    () => records.find((item) => item.id === String(id)),
     [id]
   );
+
+  const dateFormat = (date: Date) => {
+    let dateText = "";
+    if (date) {
+      const dateObj = new Date(date);
+      const day = dateObj.getDate();
+      const month = dateObj.toLocaleString("en-US", { month: "short" });
+      const year = dateObj.getFullYear();
+      const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
+      dateText = `${day} ${month} ${year} (${weekday})`;
+    }
+    return dateText;
+  }
 
   if (!record) {
     return (
@@ -74,13 +44,13 @@ export default function CardDetails() {
     );
   }
 
-  const headerText = record.moodText + emojiForMood(record.moodText);
+  const headerText = record.mood + emojiForMood(record.mood);
 
   return (
     <View style={s.container}>
       <Text style={s.header}>{headerText}</Text>
-      <Text style={s.date}>{record.dateText}</Text>
-      <Text style={s.body}>{record.bodyText}</Text>
+      <Text style={s.date}>{record?.date ? dateFormat(record.date) : ""}</Text>
+      <Text style={s.body}>{record.body}</Text>
     </View>
   );
 }

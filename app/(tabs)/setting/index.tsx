@@ -1,4 +1,5 @@
 // app/(tabs)/settings.tsx  or  app/settings.tsx
+import { useUserContext } from "@/context/authContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -26,6 +27,7 @@ const Colors = {
 };
 
 export default function SettingsScreen() {
+  const { profile } = useUserContext();
   const router = useRouter();
 
   return (
@@ -37,11 +39,11 @@ export default function SettingsScreen() {
       <View style={styles.screen}>
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
-            source={{ uri: "https://i.pravatar.cc/200?img=3" }}
+            source={{ uri: "https://media.istockphoto.com/id/1300845620/vector/user-icon-flat-isolated-on-white-background-user-symbol-vector-illustration.jpg?s=612x612&w=0&k=20&c=yBeyba0hUkh14_jgv1OKqIH0CCSWU_4ckRkAoy2p73o=" }}
             style={styles.avatar}
           />
-          <Text style={styles.name}>KhelWolf</Text>
-          <Text style={styles.email}>mikaelonavarro@gmail.com</Text>
+          <Text style={styles.name}>{profile?.first_name} {profile?.last_name}</Text>
+          <Text style={styles.email}>{profile?.email}</Text>
         </View>
 
         <View style={[styles.card, styles.shadow]}>
@@ -50,7 +52,7 @@ export default function SettingsScreen() {
             iconColor={Colors.mint}
             icon="person-circle"
             label="Personal info"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/PersonalInfo")}
           />
         </View>
 
@@ -60,32 +62,31 @@ export default function SettingsScreen() {
             iconColor={Colors.peach}
             icon="key"
             label="Password and security"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/PasswordAndSecurity")}
           />
           <Divider />
-          <SectionRow
+          {/* <SectionRow
             chipBg="#FFF3F1"
             iconColor={Colors.salmon}
             icon="apps"
             label="App and services"
             onPress={() => router.push("/")}
-          />
+          /> */}
           <Divider />
           <SectionRow
             chipBg="#EAF6F2"
             iconColor={Colors.mint}
             icon="shield-checkmark"
             label="Privacy"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Privacy")}
           />
-          <Divider />
-          <SectionRow
+          {/* <SectionRow
             chipBg="#FCFAE1"
             iconColor={Colors.peach}
             icon="phone-portrait"
             label="Devices"
             onPress={() => router.push("/")}
-          />
+          /> */}
         </View>
 
         <View style={[styles.card, styles.shadow]}>
@@ -94,7 +95,7 @@ export default function SettingsScreen() {
             iconColor={Colors.peach}
             icon="notifications"
             label="Notifications"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Notification")}
           />
           <Divider />
           <SectionRow
@@ -102,7 +103,7 @@ export default function SettingsScreen() {
             iconColor={Colors.salmon}
             icon="help-circle"
             label="Help"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Help")}
           />
           <Divider />
           <SectionRow
@@ -110,7 +111,7 @@ export default function SettingsScreen() {
             iconColor={Colors.mint}
             icon="information-circle"
             label="About"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/About")}
           />
         </View>
       </View>
