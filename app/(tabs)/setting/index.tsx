@@ -50,7 +50,7 @@ export default function SettingsScreen() {
             iconColor={Colors.mint}
             icon="person-circle"
             label="Personal info"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/PersonalInfo")}
           />
         </View>
 
@@ -60,7 +60,7 @@ export default function SettingsScreen() {
             iconColor={Colors.peach}
             icon="key"
             label="Password and security"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/PasswordAndSecurity")}
           />
           <Divider />
           {/* <SectionRow
@@ -76,16 +76,15 @@ export default function SettingsScreen() {
             iconColor={Colors.mint}
             icon="shield-checkmark"
             label="Privacy"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Privacy")}
           />
-          <Divider />
-          <SectionRow
+          {/* <SectionRow
             chipBg="#FCFAE1"
             iconColor={Colors.peach}
             icon="phone-portrait"
             label="Devices"
             onPress={() => router.push("/")}
-          />
+          /> */}
         </View>
 
         <View style={[styles.card, styles.shadow]}>
@@ -94,7 +93,7 @@ export default function SettingsScreen() {
             iconColor={Colors.peach}
             icon="notifications"
             label="Notifications"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Notification")}
           />
           <Divider />
           <SectionRow
@@ -102,7 +101,7 @@ export default function SettingsScreen() {
             iconColor={Colors.salmon}
             icon="help-circle"
             label="Help"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/Help")}
           />
           <Divider />
           <SectionRow
@@ -110,7 +109,7 @@ export default function SettingsScreen() {
             iconColor={Colors.mint}
             icon="information-circle"
             label="About"
-            onPress={() => router.push("/")}
+            onPress={() => router.push("/setting/About")}
           />
         </View>
       </View>
