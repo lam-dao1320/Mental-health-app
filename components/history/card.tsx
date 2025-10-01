@@ -7,7 +7,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type RecordType = {
   id: string;
-  moodText: string; // e.g., "Mood: Okay 😊"
+  moodText: string;
   dateText: string;
   bodyText: string;
 };
@@ -23,7 +23,7 @@ export default function Card({
   const router = useRouter();
 
   const handleCardPress = () => {
-    router.push({ pathname: "/recordDetails/[id]", params: { id } });
+    router.push(`/recordDetails/${id}`);
   };
 
   const Wrapper = gradient ? LinearGradient : View;

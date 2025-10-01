@@ -18,23 +18,22 @@ const emojiForMood = (text: string) => {
 export default function CardDetails() {
   const { id } = useLocalSearchParams();
   const { records } = useUserContext();
+
+  // find the right record by id
   const record = useMemo(
     () => records.find((item) => item.id === String(id)),
-    [id]
+    [id, records]
   );
 
-  const dateFormat = (date: Date) => {
-    let dateText = "";
-    if (date) {
-      const dateObj = new Date(date);
-      const day = dateObj.getDate();
-      const month = dateObj.toLocaleString("en-US", { month: "short" });
-      const year = dateObj.getFullYear();
-      const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
-      dateText = `${day} ${month} ${year} (${weekday})`;
-    }
-    return dateText;
-  }
+  const dateFormat = (date?: string | null) => {
+    if (!date) return "";
+    const dateObj = new Date(date);
+    const day = dateObj.getDate();
+    const month = dateObj.toLocaleString("en-US", { month: "short" });
+    const year = dateObj.getFullYear();
+    const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
+    return `${day} ${month} ${year} (${weekday})`;
+  };
 
   if (!record) {
     return (
@@ -46,11 +45,15 @@ export default function CardDetails() {
 
   const headerText = record.mood + emojiForMood(record.mood);
 
+  // Use diary body if available, else fallback
+  const diaryBody = record.diary?.body ?? "(no diary written)";
+  const diaryDate = record.diary?.date ?? record.date;
+
   return (
     <View style={s.container}>
       <Text style={s.header}>{headerText}</Text>
-      <Text style={s.date}>{record?.date ? dateFormat(record.date) : ""}</Text>
-      <Text style={s.body}>{record.body}</Text>
+      <Text style={s.date}>{dateFormat(diaryDate)}</Text>
+      <Text style={s.body}>{diaryBody}</Text>
     </View>
   );
 }
