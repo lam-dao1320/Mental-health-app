@@ -1,4 +1,3 @@
-// app/(questionnaire)/q.tsx
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -20,58 +19,56 @@ type Item = {
 };
 
 const SCALE = [
-  { label: "Not at all", value: 0 },
-  { label: "Several days", value: 1 },
-  { label: "More than half the days", value: 2 },
-  { label: "Nearly every day", value: 3 },
+  { label: "None", value: 0 },
+  { label: "Rarely", value: 1 },
+  { label: "Sometimes", value: 2 },
+  { label: "Often", value: 3 },
+  { label: "Everyday", value: 4 },
 ];
 
-const PHQ9: Item[] = [
+const ITEMS: Item[] = [
   {
-    id: "phq1",
+    id: "q1",
     text: "Little interest or pleasure in doing things",
     scale: SCALE,
   },
-  { id: "phq2", text: "Feeling down, depressed, or hopeless", scale: SCALE },
-  //   {
-  //     id: "phq3",
-  //     text: "Trouble falling/staying asleep, or sleeping too much",
-  //     scale: SCALE,
-  //   },
-  //   { id: "phq4", text: "Feeling tired or having little energy", scale: SCALE },
-  //   { id: "phq5", text: "Poor appetite or overeating", scale: SCALE },
-];
-
-const GAD7: Item[] = [
-  { id: "gad1", text: "Feeling nervous, anxious, or on edge", scale: SCALE },
+  { id: "q2", text: "Feeling down, depressed, or hopeless", scale: SCALE },
   {
-    id: "gad2",
+    id: "q3",
+    text: "Trouble falling or staying asleep, or sleeping too much",
+    scale: SCALE,
+  },
+  { id: "q4", text: "Feeling tired or having little energy", scale: SCALE },
+  { id: "q5", text: "Feeling nervous, anxious, or on edge", scale: SCALE },
+  {
+    id: "q6",
     text: "Not being able to stop or control worrying",
     scale: SCALE,
   },
-  //   {
-  //     id: "gad3",
-  //     text: "Worrying too much about different things",
-  //     scale: SCALE,
-  //   },
-  //   { id: "gad4", text: "Trouble relaxing", scale: SCALE },
-  //   {
-  //     id: "gad5",
-  //     text: "Being so restless that it is hard to sit still",
-  //     scale: SCALE,
-  //   },
+  { id: "q7", text: "Poor appetite or overeating", scale: SCALE },
+  {
+    id: "q8",
+    text: "Feeling bad about yourself or that you are a failure",
+    scale: SCALE,
+  },
+  {
+    id: "q9",
+    text: "Being so restless that it's hard to sit still",
+    scale: SCALE,
+  },
+  {
+    id: "q10",
+    text: "Trouble concentrating on things, such as reading or watching TV",
+    scale: SCALE,
+  },
 ];
 
-const ITEMS: Item[] = [...PHQ9, ...GAD7];
-
 export default function Question() {
-  // Get params first so index exists for state initialization
-  const { i, a } = useLocalSearchParams<{ i: string; a: string }>(); // [web:121]
-  const index = Number(i || 0); // [web:121]
+  const { i, a } = useLocalSearchParams<{ i: string; a: string }>();
+  const index = Number(i || 0);
 
-  // Direction tracking
-  const [isBack, setIsBack] = useState(false); // [web:53]
-  const [prevIndex, setPrevIndex] = useState(index); // [web:53]
+  const [isBack, setIsBack] = useState(false);
+  const [prevIndex, setPrevIndex] = useState(index);
 
   const answers = useMemo(() => {
     try {
@@ -79,25 +76,24 @@ export default function Question() {
     } catch {
       return [];
     }
-  }, [a]); // [web:121]
+  }, [a]);
 
-  const item = ITEMS[index]; // [web:121]
+  const item = ITEMS[index];
+  const [selectedValue, setSelectedValue] = useState<number | null>(null);
 
-  const [selectedValue, setSelectedValue] = useState<number | null>(null); // [web:72]
-
-  // Pre-fill and detect direction
   useEffect(() => {
     const prev = answers[index]?.value ?? null;
     setSelectedValue(prev);
     setIsBack(index < prevIndex);
     setPrevIndex(index);
-  }, [index, a]); // [web:53]
+  }, [index, a]);
 
   const onNext = () => {
     if (selectedValue == null) return;
     const nextAnswers = [...answers];
     nextAnswers[index] = { id: item.id, value: selectedValue };
     setIsBack(false);
+
     if (index < ITEMS.length - 1) {
       router.replace({
         pathname: "/(questionnaire)/q",
@@ -109,7 +105,7 @@ export default function Question() {
         params: { a: JSON.stringify(nextAnswers) },
       });
     }
-  }; // [web:121]
+  };
 
   const back = () => {
     const prev = Math.max(0, index - 1);
@@ -118,15 +114,14 @@ export default function Question() {
       pathname: "/(questionnaire)/q",
       params: { i: String(prev), a: JSON.stringify(answers) },
     });
-  }; // [web:121]
+  };
 
-  // Choose horizontal slide presets based on direction
   const entering = (isBack ? SlideInLeft : SlideInRight)
     .duration(260)
-    .easing(Easing.out(Easing.cubic)); // [web:55]
+    .easing(Easing.out(Easing.cubic));
   const exiting = (isBack ? SlideOutRight : SlideOutLeft)
     .duration(220)
-    .easing(Easing.in(Easing.cubic)); // [web:45]
+    .easing(Easing.in(Easing.cubic));
 
   return (
     <View style={styles.root}>
@@ -137,7 +132,6 @@ export default function Question() {
         style={styles.centerStage}
       >
         <View style={styles.card}>
-          {/* Tiny top-centered progress */}
           <Text style={styles.progressTiny}>
             {index + 1} / {ITEMS.length}
           </Text>
@@ -178,7 +172,6 @@ export default function Question() {
             })}
           </View>
 
-          {/* Bottom actions inside the card */}
           <View style={styles.bottomRow}>
             <TouchableOpacity
               onPress={back}
@@ -247,7 +240,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 12,
     color: "#9CA3AF",
-    fontFamily: "Noto Sans HK",
   },
   kicker: {
     marginTop: 10,
@@ -255,7 +247,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 6,
     textAlign: "center",
-    fontFamily: "Noto Sans HK",
   },
   question: {
     fontSize: 22,
@@ -265,7 +256,6 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     lineHeight: 28,
     paddingHorizontal: 8,
-    fontFamily: "Noto Sans HK",
   },
   pill: {
     width: "100%",
@@ -277,19 +267,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
   },
   pillActive: {
     backgroundColor: "#FDF6D2",
     borderWidth: 1,
     borderColor: "#F4CA90",
   },
-  pillText: { fontSize: 16, color: "#1D1D1F", fontFamily: "Noto Sans HK" },
-  pillTextActive: { color: "#1D1D1F" },
+  pillText: { fontSize: 16, color: "#1D1D1F" },
+  pillTextActive: { color: "#1D1D1F", fontWeight: "600" },
   bottomRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -308,7 +293,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 6,
   },
-  ghostText: { color: "#6B7280", fontSize: 16, fontFamily: "Noto Sans HK" },
+  ghostText: { color: "#6B7280", fontSize: 16 },
   primaryBtn: {
     flex: 1,
     height: 44,
@@ -324,6 +309,5 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "bold",
-    fontFamily: "Noto Sans HK",
   },
 });
