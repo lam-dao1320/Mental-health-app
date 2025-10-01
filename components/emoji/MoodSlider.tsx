@@ -1,6 +1,8 @@
-// app/(tabs)/emoji.tsx  OR  app/emoji.tsx
+// app/(tabs)/emoji.tsx
+
 import { useUserContext } from "@/context/authContext";
 import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
+import { supabase } from "@/lib/supabase";
 import { AntDesign } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
@@ -27,7 +29,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 type MoodEntry = {
-  value: number; // 0..4
+  value: number;
   emoji: string;
   label: string;
   word: string;
@@ -39,25 +41,16 @@ type MoodEntry = {
 const MOODS = [
   { emoji: "😡", label: "angry", word: "ANGRY" },
   { emoji: "😢", label: "sad", word: "SAD" },
-  { emoji: "😔", label: "low", word: "BAD" },
+  { emoji: "😔", label: "low", word: "LOW" },
   { emoji: "😊", label: "okay", word: "OKAY" },
   { emoji: "😄", label: "great", word: "GREAT" },
 ];
 
 const GRADIENTS: [string, string][] = [
-  // 0 angry — unchanged (warm strawberry → deep rose)
   ["#F49790", "#E06A6A"],
-
-  // 1 sad — unchanged (mint → teal)
   ["#ACD1C9", "#7CB7AB"],
-
-  // 2 low — solid F9F9FB (brand background)
   ["#d6ed81ff", "#d6ed81ff"],
-
-  // 3 okay — unchanged (peach → coral)
   ["#F4CA90", "#F49790"],
-
-  // 4 great — solid F49790 (salmon)
   ["#F49790", "#F49790"],
 ];
 
@@ -68,22 +61,23 @@ const MIN_LEN = 0;
 
 export default function EmojiPage() {
   const { profile, records, setRecords } = useUserContext();
-  // console.log(profile);
-  const router = useRouter(); // inside component [web:83]
+  const router = useRouter();
 
-  // toggle for text diary
   const [isOpen, setIsOpen] = useState(false);
   const [textDiary, setTextDiary] = useState("");
   const [kbVisible, setKbVisible] = useState(false);
 
-  // Continuous 0..100 slider value
   const [continuousValue, setContinuousValue] = useState(75);
   const moodIndex = Math.min(4, Math.max(0, Math.round(continuousValue / 25)));
   const mood = useMemo(() => MOODS[moodIndex], [moodIndex]);
   const colors = GRADIENTS[moodIndex];
 
-  // Emoji pulse on snap
+  const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
+
+  // animations
   const scale = useRef(new Animated.Value(1)).current;
+  const btnScale = useRef(new Animated.Value(1)).current;
+
   const pulse = () => {
     Animated.sequence([
       Animated.timing(scale, {
@@ -101,15 +95,14 @@ export default function EmojiPage() {
     ]).start();
   };
 
-  // Save button animation + state
-  const [saved, setSaved] = useState(false);
-  const btnScale = useRef(new Animated.Value(1)).current;
   const animateBtn = () => {
     Animated.sequence([
       Animated.spring(btnScale, { toValue: 0.96, useNativeDriver: true }),
       Animated.spring(btnScale, { toValue: 1, useNativeDriver: true }),
     ]).start();
   };
+
+  const [saved, setSaved] = useState(false);
 
   const onSlide = (v: number) => {
     if (saved) setSaved(false);
@@ -131,32 +124,136 @@ export default function EmojiPage() {
     return `${date} • ${time}`;
   })();
 
-  const handleSave = () => {
+  // ✅ Save mood immediately
+  const handleSave = async () => {
     animateBtn();
     setSaved(true);
+
+    if (!profile) return;
+
+    try {
+      const newRecord = {
+        user_email: profile.email,
+        mood: mood.label,
+      };
+
+      const savedMood = await addNewRecord(newRecord);
+      setCurrentRecordId(savedMood.id);
+      fetchRecords();
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : err);
+    }
   };
-  const handleHistory = () => router.push("/history"); // TODO: navigate to history
+
+  const fetchRecords = async () => {
+    if (profile) {
+      try {
+        const data = await getRecordsByEmail(profile.email);
+        setRecords(data);
+      } catch (err) {
+        console.error(err instanceof Error ? err.message : "Fetch failed");
+      }
+    }
+  };
+
+  const handleDiaryToggle = () => setIsOpen(!isOpen);
+
+  // ✅ Save diary linked to latest mood
+  const onSaveDiary = async () => {
+    if (!profile) return;
+
+    try {
+      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+
+      // fetch latest mood within 30 mins
+      const { data: moods, error: moodErr } = await supabase
+        .from("mood_log")
+        .select("id, date, diary_id")
+        .eq("user_email", profile.email)
+        .gte("date", cutoff)
+        .order("date", { ascending: false })
+        .limit(1);
+
+      if (moodErr) throw moodErr;
+      if (!moods || moods.length === 0) {
+        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
+        return;
+      }
+
+      const latest = moods[0];
+      if (latest.diary_id) {
+        Alert.alert("Error", "This mood already has a diary linked.");
+        return;
+      }
+
+      // create diary
+      // create diary
+      const { data: diary, error: diaryErr } = await supabase
+        .from("diary")
+        .insert({
+          user_email: profile.email,
+          body: textDiary,
+        })
+        .select("id") // ensure ID is returned
+        .single();
+
+      if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
+
+      // explicitly update mood_log
+      const { error: updateErr } = await supabase
+        .from("mood_log")
+        .update({ diary_id: diary.id })
+        .eq("id", latest.id)
+        .select("id, diary_id"); // force return, so we can debug
+
+      if (updateErr) throw updateErr;
+      console.log("✅ mood_log updated:", {
+        moodId: latest.id,
+        linkedDiaryId: diary.id,
+      });
+
+      Alert.alert("Success", "Diary linked to recent mood!");
+      fetchRecords();
+      setTextDiary("");
+      setIsOpen(false);
+    } catch (err) {
+      Alert.alert(
+        "Error",
+        err instanceof Error ? err.message : "Something went wrong"
+      );
+      console.error(err);
+    }
+    Keyboard.dismiss();
+  };
+
+  const handleClose = () => {
+    Alert.alert(
+      "Are you sure?",
+      "Your diary is unsaved. Do you want to leave without saving?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: () => {
+            setIsOpen(false);
+            setTextDiary("");
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
 
   useFocusEffect(
     React.useCallback(() => {
-      // bucket 3 ("okay") corresponds to 75 on the 0..100 scale
       setContinuousValue(75);
       setSaved(false);
-      // no cleanup required
+      setCurrentRecordId(null);
       return undefined;
     }, [])
   );
 
-  //
-  const handleDiaryToggle = () => {
-    if (!isOpen) {
-      setIsOpen(true);
-    } else {
-      setIsOpen(false);
-    }
-  };
-
-  // Detect keyboard open/close
   useEffect(() => {
     const show = Keyboard.addListener("keyboardDidShow", () =>
       setKbVisible(true)
@@ -168,75 +265,17 @@ export default function EmojiPage() {
       show.remove();
       hide.remove();
     };
-  }, []); // keyboard listeners [web:585][web:396]
-
-  const remaining = useMemo(
-    () =>
-      typeof MAX_LEN === "number"
-        ? Math.max(0, MAX_LEN - textDiary.length)
-        : undefined,
-    [textDiary]
-  );
-  const tooShort = textDiary.trim().length < MIN_LEN;
-  const overMax = typeof MAX_LEN === "number" && textDiary.length > MAX_LEN;
-  const canSave = !tooShort && !overMax && textDiary.trim().length > 0;
+  }, []);
 
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
-  const fetchRecords = async () => {
-    if (profile)
-      try {
-        const data = await getRecordsByEmail(profile.email);
-        setRecords(data);
-      } catch (err) {
-        console.error(err instanceof Error ? err.message : "Authentication failed");
-      }
-  };
+  const remaining = Math.max(0, MAX_LEN - textDiary.length);
+  const tooShort = textDiary.trim().length < MIN_LEN;
+  const overMax = textDiary.length > MAX_LEN;
+  const canSave = !tooShort && !overMax && textDiary.trim().length > 0;
 
-  const onSave = async () => {
-    if (!canSave) return;
-    // TODO: persist entry
-    const newRecord = {
-      user_email: profile?.email || "",
-      mood: mood.label,
-      body: textDiary,
-    };
-
-    // add new Mood to database
-    try {
-      await addNewRecord(newRecord);
-      fetchRecords();
-      // console.log(newRecord);
-      setTextDiary("");
-      setIsOpen(false);
-      Alert.alert("Success", "Mood is saved");
-    } catch (err) {
-      console.error(err instanceof Error ? err.message : "Authentication failed");
-    }
-    Keyboard.dismiss();
-  };
-
-  // handle close window
-  const handleClose = () => {
-    Alert.alert(
-      "Are you sure?",
-      "Your diary is unsaved. Do you want to leave without saving?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel", // iOS-style bold cancel
-          onPress: () => {}, // Do nothing
-        },
-        {
-          text: "Leave",
-          style: "destructive",
-          onPress: () => {setIsOpen(false); setTextDiary(""); }, // Close modal
-        },
-      ],
-      { cancelable: true }
-    );
-  };
+  const handleHistory = () => router.push("/history");
 
   return (
     <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
@@ -249,19 +288,16 @@ export default function EmojiPage() {
             style={StyleSheet.absoluteFill}
           />
 
-          {/* Large translucent word */}
           <Text numberOfLines={1} adjustsFontSizeToFit style={styles.bigWord}>
             {mood.word}
           </Text>
 
-          {/* Huge emoji slightly overlapping the word */}
           <View style={styles.centerWrap} pointerEvents="none">
             <Animated.Text style={[styles.emoji, { transform: [{ scale }] }]}>
               {mood.emoji}
             </Animated.Text>
           </View>
 
-          {/* Slider high enough to clear all three pill rows */}
           <View style={styles.sliderZone}>
             <View style={styles.rail} pointerEvents="none">
               <View style={styles.railInner} />
@@ -279,11 +315,13 @@ export default function EmojiPage() {
             />
           </View>
 
-          {/* Bottom dock: set pointerEvents to avoid stealing touches above */}
           <View style={styles.bottomDock} pointerEvents="box-none">
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>
-                {profile?.first_name ? `${profile.first_name} is feeling` : "I'm feeling"} <Text style={styles.pillStrong}>{mood.label}</Text>
+                {profile?.first_name
+                  ? `${profile.first_name} is feeling`
+                  : "I'm feeling"}{" "}
+                <Text style={styles.pillStrong}>{mood.label}</Text>
               </Text>
               <Animated.View style={{ transform: [{ scale: btnScale }] }}>
                 <Pressable
@@ -309,13 +347,20 @@ export default function EmojiPage() {
               </Pressable>
             </View>
 
+            {/* Diary Modal */}
             <Modal
               animationType="fade"
               transparent={true}
               visible={isOpen}
-              onRequestClose={() => setIsOpen(false)} // Android back button
+              onRequestClose={() => setIsOpen(false)}
             >
-              <Pressable style={styles.modalOverlay} onPress={handleClose}>
+              <TouchableWithoutFeedback
+                onPress={Keyboard.dismiss}
+                accessible={false}
+              >
+              <Pressable style={kbVisible
+                              ? styles.modalOverlayTop
+                              : styles.modalOverlay} onPress={handleClose}>
                 <Pressable
                   style={styles.modalContainer}
                   onPress={(e) => e.stopPropagation()}
@@ -325,10 +370,6 @@ export default function EmojiPage() {
                       style={{ flex: 1, backgroundColor: "#F9F9FB" }}
                       behavior={Platform.OS === "ios" ? "padding" : undefined}
                     >
-                      <TouchableWithoutFeedback
-                        onPress={Keyboard.dismiss}
-                        accessible={false}
-                      >
                         <View
                           style={[
                             styles.container,
@@ -343,14 +384,13 @@ export default function EmojiPage() {
                               flexDirection: "row",
                               justifyContent: "flex-end",
                               alignItems: "flex-end",
-                              padding: 10,
+                              padding: 8,
                             }}
                           >
                             <TouchableOpacity onPress={handleClose}>
                               <AntDesign name="close" size={24} color="black" />
                             </TouchableOpacity>
                           </View>
-                          {/* <Button title="Close" onPress={() => setIsOpen(false)} /> */}
                           <Text style={styles.header}>Diary</Text>
 
                           <View style={[styles.diaryCard, styles.diaryShadow]}>
@@ -381,9 +421,7 @@ export default function EmojiPage() {
                               <Text
                                 style={[
                                   styles.counter,
-                                  remaining !== undefined && remaining <= 40
-                                    ? styles.counterLow
-                                    : null,
+                                  remaining <= 40 ? styles.counterLow : null,
                                 ]}
                               >
                                 {textDiary.length}/{MAX_LEN}
@@ -411,7 +449,7 @@ export default function EmojiPage() {
                                   : styles.btnDisabled,
                                 pressed && { opacity: 0.9 },
                               ]}
-                              onPress={onSave}
+                              onPress={onSaveDiary}
                               disabled={!canSave}
                               hitSlop={8}
                             >
@@ -421,11 +459,12 @@ export default function EmojiPage() {
                             </Pressable>
                           </View>
                         </View>
-                      </TouchableWithoutFeedback>
+                      
                     </KeyboardAvoidingView>
                   </ScrollView>
                 </Pressable>
               </Pressable>
+              </TouchableWithoutFeedback>
             </Modal>
 
             <View style={styles.pillRow}>
@@ -446,11 +485,9 @@ export default function EmojiPage() {
 }
 
 const BOTTOM_DOCK_ROWS = 3;
-const DOCK_ROW_HEIGHT = 48; // approx row height including padding
-const DOCK_GAP = 10; // gap between rows
-const DOCK_PADDING = 12; // bottom padding
-
-// Reserve enough vertical space above the dock for the slider:
+const DOCK_ROW_HEIGHT = 48;
+const DOCK_GAP = 10;
+const DOCK_PADDING = 12;
 const RESERVED_BOTTOM =
   BOTTOM_DOCK_ROWS * DOCK_ROW_HEIGHT +
   (BOTTOM_DOCK_ROWS - 1) * DOCK_GAP +
@@ -460,9 +497,8 @@ const RESERVED_BOTTOM =
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F6F5F2" },
   page: { flex: 1, justifyContent: "center", paddingHorizontal: 16 },
-
   card: {
-    height: 520, // slightly taller to fit 3 rows
+    height: 520,
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 18,
@@ -476,7 +512,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 12 },
     elevation: 10,
   },
-
   bigWord: {
     position: "absolute",
     top: 30,
@@ -488,7 +523,6 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     color: "rgba(255,255,255,0.22)",
   },
-
   centerWrap: {
     position: "absolute",
     top: -120,
@@ -504,8 +538,6 @@ const styles = StyleSheet.create({
     textShadowRadius: 18,
     textShadowOffset: { width: 0, height: 10 },
   },
-
-  // Slider lifted by RESERVED_BOTTOM to avoid overlap with all pill rows
   sliderZone: {
     position: "absolute",
     left: 14,
@@ -517,7 +549,6 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   slider: { position: "absolute", left: 0, right: 0, height: 60 },
-
   rail: {
     position: "absolute",
     left: 6,
@@ -530,7 +561,6 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     backgroundColor: "rgba(255,255,255,0.35)",
   },
-
   bottomDock: {
     position: "absolute",
     left: 12,
@@ -560,10 +590,16 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.55)",
   },
   pillBtnText: { color: "#FFFFFF", fontWeight: "900", letterSpacing: 1 },
-  // pop up window
+  modalOverlayTop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-start",
+    paddingTop: 100,
+    alignItems: "center",
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)", // semi-transparent background
+    backgroundColor: "rgba(0,0,0,0.5)",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -572,29 +608,17 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: "#F9F9FB",
     borderRadius: 10,
-    elevation: 10, // Android shadow
+    elevation: 10,
   },
-  modalText: {
-    marginBottom: 20,
-    textAlign: "center",
-    fontSize: 16,
-  },
-  //Text diary
-  container: {
-    flex: 1,
-  },
-  // Center everything when keyboard is closed
-  containerCenter: {
-    justifyContent: "center",
+  container: { flex: 1 },
+  containerCenter: { 
+    justifyContent: "center", 
     alignItems: "center",
   },
-  // Push to top when keyboard opens
   containerTop: {
     justifyContent: "flex-start",
     alignItems: "center",
-    paddingTop: 24,
   },
-
   header: {
     color: "black",
     fontFamily: "Noto Sans HK",
@@ -605,9 +629,8 @@ const styles = StyleSheet.create({
     textAlign: "left",
     marginLeft: 15,
   },
-
   diaryCard: {
-    height: CARD_HEIGHT,
+    height: 200,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
