@@ -47,12 +47,23 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
     const router = useRouter();
 
     useEffect(() => {
+        const fetchProfile = async (email: string) => {
+            try {
+                const data = await getUserByEmail(email);
+                setProfile(data);
+            } catch (error) {
+                console.error("Error fetching profile after sign in: ", error)
+                throw error;
+            }
+        };
+
         const initializeAuth = async () => {
             setIsLoading(true);
             const {data : {session}} = await supabase.auth.getSession();
             setSession(session);
             if (session?.user.email) {               
                 console.log("Email: ", session.user.email);
+                await fetchProfile(session.user.email);
             } else {
                 router.push('/sign_in');
             }
@@ -69,24 +80,6 @@ export const UserContextProvider = ({ children } : UserContextProviderProps) => 
         return () => { subscription.unsubscribe(); };
 
     }, []);
-
-    useEffect(() => {
-        const fetchProfile = async () => {
-            if (session?.user.email) {               
-                // console.log("Fetching User Profile: ", session.user);
-                try {
-                    const data = await getUserByEmail(session.user.email);
-                    setProfile(data);
-                } catch (error) {
-                    console.error("Error Initialize Auth: ", error)
-                    throw error;
-                }
-            } else { 
-                setProfile(null);
-            }
-        };
-        fetchProfile();
-    }, [session]);
 
     useEffect(() => {
         const fetchRecords = async () => {

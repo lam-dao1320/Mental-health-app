@@ -24,3 +24,14 @@ export async function addUser(user: UserProfile) {
     }
     return data;
 }
+
+export async function updateUser(user: UserProfile) {
+    const { data, error } = await supabase
+        .from('user_profiles')
+        .update(user)
+        .eq('email', user.email)
+    if (error) {
+        throw error;
+    }
+    return data;
+}

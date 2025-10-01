@@ -7,6 +7,7 @@ import { Stack } from "expo-router";
 import "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context"; // safe area wrapper
 
+import { UserContextProvider } from "@/context/authContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export const unstable_settings = {
@@ -17,6 +18,7 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
+    <UserContextProvider>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <SafeAreaView
         style={{ flex: 1, backgroundColor: "transparent" }}
@@ -37,5 +39,6 @@ export default function RootLayout() {
         {/* <StatusBar style="auto" /> */}
       </SafeAreaView>
     </ThemeProvider>
+    </UserContextProvider>
   );
 }

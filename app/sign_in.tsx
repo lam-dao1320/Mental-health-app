@@ -1,4 +1,5 @@
 import { useUserContext } from "@/context/authContext";
+import { getDiaryByEmail } from "@/lib/diary_crud";
 import { getRecordsByEmail } from "@/lib/mood_crud";
 import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
@@ -10,7 +11,7 @@ const countries = ["United States", "Canada", "China", "HongKong", "Vietnam", "K
 
 export default function SignIn() {
 
-    const { setProfile, setRecords, signIn } = useUserContext();
+    const { setProfile, setRecords, setDiaryRecords, signIn } = useUserContext();
 
     const [step, setStep] = useState(0);
 
@@ -21,6 +22,7 @@ export default function SignIn() {
     const [firstName,setFirstName] = useState("");
     const [lastName, setLastName] = useState("");
     const [country, setCountry] = useState("");
+    const [phone, setPhone] = useState("");
 
     const [birthDay, setBirthDay] = useState("");
     const [birthMonth, setBirthMonth] = useState("");
@@ -77,15 +79,19 @@ export default function SignIn() {
         try {
             if (isSignIn) {
                 await signIn(email, password);
-                const data = await getUserByEmail(email);
-                setProfile(data);
-                if (step == 0) router.push('/(tabs)');
+                if (step == 0) {
+                    const profileData = await getUserByEmail(email);
+                    setProfile(profileData);
+                    const moodData = await getRecordsByEmail(email);
+                    setRecords(moodData);
+                    const diaryData = await getDiaryByEmail(email);
+                    setDiaryRecords(diaryData)
+                    router.push('/(tabs)');
+                }
                 else handleNext();
             } else {
                 await handleSignUp();
             }
-            const data = await getRecordsByEmail(email);
-            setRecords(data);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Authentication failed");
         } finally {
@@ -112,62 +118,74 @@ export default function SignIn() {
     const handleRegisterUser = async () => {
         setError(null);
 
-        if (!firstName || !lastName || !country.trim() || !birthDay || !birthMonth || !birthYear) {
+        if (!firstName || !lastName) {
             setError("Information is required");
             return;
         }
 
+        let birthDate = null;
+
         // Validate birth date
-        
-        const day = parseInt(birthDay, 10);
-        const month = parseInt(birthMonth, 10); 
-        const year = parseInt(birthYear, 10);
+        if (birthDay && birthMonth && birthYear) {
+            const day = parseInt(birthDay, 10);
+            const month = parseInt(birthMonth, 10); 
+            const year = parseInt(birthYear, 10);
 
-        if (isNaN(day) || isNaN(month) || isNaN(year)) {
-            setError("Birth date must contain only numbers.");
-            return;
-        }
+            if (isNaN(day) || isNaN(month) || isNaN(year)) {
+                setError("Birth date must contain only numbers.");
+                return;
+            }
 
-        const dateCheck = new Date(year, month - 1, day);
-        const currentYear = new Date().getFullYear();
+            const dateCheck = new Date(year, month - 1, day);
+            const currentYear = new Date().getFullYear();
 
-        if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > currentYear) {
-            setError("Please enter a valid day, month, and year.");
-            return;
-        }
+            if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900 || year > currentYear) {
+                setError("Please enter a valid day, month, and year.");
+                return;
+            }
 
-        // Check if the constructed date matches the input values (validates Feb 30, Apr 31, etc.)
-        if (
-            dateCheck.getFullYear() !== year || 
-            dateCheck.getMonth() !== month - 1 || 
-            dateCheck.getDate() !== day
-        ) {
-            setError("The date entered is invalid (e.g., check days in month).");
-            return;
-        }
+            // Check if the constructed date matches the input values (validates Feb 30, Apr 31, etc.)
+            if (
+                dateCheck.getFullYear() !== year || 
+                dateCheck.getMonth() !== month - 1 || 
+                dateCheck.getDate() !== day
+            ) {
+                setError("The date entered is invalid (e.g., check days in month).");
+                return;
+            }
 
-        // Check if date is in the future
-        if (dateCheck > new Date()) {
-            setError("Birth date cannot be in the future.");
-            return;
+            // Check if date is in the future
+            if (dateCheck > new Date()) {
+                setError("Birth date cannot be in the future.");
+                return;
+            }
+
+            birthDate = dateCheck;
         }
         
         let newProfile = {
             first_name: firstName,
             last_name: lastName,
             email: email,
-            birth_date: dateCheck,
+            phone: phone,
+            birth_date: birthDate,
             country: country.trim(),
+            phq: 0,
+            gad: 0,
         }
-        // console.log(newProfile);
 
         try {
             await addUser(newProfile);
+            const data = await getUserByEmail(email);
+            setProfile(data);
             router.push('/(questionnaire)');
         } catch (err: any) {
             if (err.message.toLowerCase().includes("duplicate")) {
                 setError("Email is existed");
-            } else setError("Registration failed");
+            } else {
+                console.error(err.message);
+                setError("Registration failed");
+            }
         } finally {
             setLoading(false);
         }
@@ -314,6 +332,16 @@ export default function SignIn() {
                             placeholder="e.g., United States"
                             value={country}
                             onChangeText={setCountry}
+                            autoCapitalize="words"
+                        />
+
+                        {/* Phone */}
+                        <Text style={styles.label}>Phone</Text>
+                        <TextInput
+                            style={styles.input}
+                            placeholder="10 characters"
+                            value={phone}
+                            onChangeText={setPhone}
                             autoCapitalize="words"
                         />
 

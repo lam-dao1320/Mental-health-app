@@ -1,4 +1,5 @@
 // app/(tabs)/settings.tsx  or  app/settings.tsx
+import { useUserContext } from "@/context/authContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -26,6 +27,7 @@ const Colors = {
 };
 
 export default function SettingsScreen() {
+  const { profile } = useUserContext();
   const router = useRouter();
 
   return (
@@ -37,11 +39,11 @@ export default function SettingsScreen() {
       <View style={styles.screen}>
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
-            source={{ uri: "https://i.pravatar.cc/200?img=3" }}
+            source={{ uri: "https://media.istockphoto.com/id/1300845620/vector/user-icon-flat-isolated-on-white-background-user-symbol-vector-illustration.jpg?s=612x612&w=0&k=20&c=yBeyba0hUkh14_jgv1OKqIH0CCSWU_4ckRkAoy2p73o=" }}
             style={styles.avatar}
           />
-          <Text style={styles.name}>KhelWolf</Text>
-          <Text style={styles.email}>mikaelonavarro@gmail.com</Text>
+          <Text style={styles.name}>{profile?.first_name} {profile?.last_name}</Text>
+          <Text style={styles.email}>{profile?.email}</Text>
         </View>
 
         <View style={[styles.card, styles.shadow]}>
