@@ -326,46 +326,58 @@ export default function SignIn() {
               {error && <Text style={styles.errorText}>{error}</Text>}
 
               {/* First Name */}
-              <Text style={styles.label}>First Name</Text>
-              <TextInput
-                style={styles.input}
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
-              />
+              <View style={styles.inputRow}>
+                <View style={{flex: 1, marginBottom: 0, marginRight: 10}}>
+                  <Text style={styles.label}>First Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    autoCapitalize="words"
+                  />
+                </View>
 
-              {/* Last Name */}
-              <Text style={styles.label}>Last Name</Text>
-              <TextInput
-                style={styles.input}
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
-              />
+                {/* Last Name */}
+                <View style={{flex: 1, marginBottom: 0, marginLeft: 10}}>
+                  <Text style={styles.label}>Last Name</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={lastName}
+                    onChangeText={setLastName}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
 
               {/* Country */}
-              <Text style={styles.label}>Country</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., United States"
-                value={country}
-                onChangeText={setCountry}
-                autoCapitalize="words"
-              />
+              <View style={styles.inputRow}>
+                <View style={{flex: 1, marginBottom: 0, marginRight: 10}}>
+                  <Text style={styles.label}>Country</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="e.g., United States"
+                    value={country}
+                    onChangeText={setCountry}
+                    autoCapitalize="words"
+                  />
+                </View>
 
-              {/* Phone */}
-              <Text style={styles.label}>Phone</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="10 characters"
-                value={phone}
-                onChangeText={setPhone}
-                autoCapitalize="words"
-              />
+                {/* Phone */}
+                <View style={{flex: 1, marginBottom: 0, marginLeft: 10}}>
+                  <Text style={styles.label}>Phone</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="10 characters"
+                    value={phone}
+                    onChangeText={setPhone}
+                    autoCapitalize="words"
+                  />
+                </View>
+              </View>
 
               {/* Birth Date Inputs (Day, Month, Year) */}
               <Text style={styles.label}>Birth Date</Text>
-              <View style={styles.dateInputRow}>
+              <View style={styles.inputRow}>
                 <TextInput
                   style={[styles.input, styles.dateInput]}
                   placeholder="DD"
@@ -515,7 +527,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Noto Sans HK",
   },
-  dateInputRow: {
+  inputRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     marginBottom: 15,
