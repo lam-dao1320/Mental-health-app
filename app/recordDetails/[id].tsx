@@ -43,7 +43,9 @@ export default function CardDetails() {
     );
   }
 
-  const headerText = record.mood + emojiForMood(record.mood);
+  const headerText = record.mood
+  ? record.mood + emojiForMood(record.mood)
+  : "No mood selected 😶";
 
   // Use diary body if available, else fallback
   const diaryBody = record.diary?.body ?? "(no diary written)";
