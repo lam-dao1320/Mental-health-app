@@ -1,6 +1,7 @@
 // app/diary.tsx
 import { useUserContext } from "@/context/authContext";
-import { addNewDiary, getDiaryByEmail } from "@/lib/diary_crud";
+import { getDiaryByEmail } from "@/lib/diary_crud";
+import { supabase } from "@/lib/supabase";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -65,27 +66,73 @@ export default function DiaryPage() {
       }
     }
   }
-  
+
   const onSave = async () => {
-    if (!canSave) return;
-    // Add new Diary Record to database
-    let newDiaryRecord = {
-      user_email: profile?.email || "",
+    if(!canSave) return;
+    if(!profile) return;
+
+    const newDiaryRecord = {
+      user_email: profile.email,
       body: text,
-    }
+    };
+
     try {
-      await addNewDiary(newDiaryRecord);
+      // Insert diary and get inserted diary id
+      const { data: diary, error: diaryErr } = await supabase
+        .from("diary")
+        .insert(newDiaryRecord)
+        .select("id")
+        .single();
+
+      if (diaryErr || !diary) throw diaryErr ?? new Error("Failed to create diary");
+
+      // Insert mood_log with mood=null and diary_id set to the new diary's id
+      const { error: moodErr } = await supabase
+        .from("mood_log")
+        .insert({
+          user_email: profile.email,
+          mood: null,
+          diary_id: diary.id,
+          date: new Date().toISOString(),
+        });
+
+      if (moodErr) throw moodErr;
+
+      Alert.alert("Success", "Diary and mood log saved.");
       fetchDiary();
-      Alert.alert("Success", "Diary is saved");
+      setText("");
     } catch (err: any) {
-      if (err.message.toLowerCase().includes("duplicate")) {
-        Alert.alert("Error", "Date is existed");
-      } else Alert.alert("Error", "Registration failed");
+      if (err.message?.toLowerCase().includes("duplicate")) {
+        Alert.alert("Error", "Entry already exists.");
+      } else {
+        Alert.alert("Error", err.message || "Save failed");
+      }
+      console.error(err);
     }
-    // TODO: persist entry
-    setText("");
+
     Keyboard.dismiss();
-  };
+  }
+  
+  // const onSave = async () => {
+  //   if (!canSave) return;
+  //   // Add new Diary Record to database
+  //   let newDiaryRecord = {
+  //     user_email: profile?.email || "",
+  //     body: text,
+  //   }
+  //   try {
+  //     await addNewDiary(newDiaryRecord);
+  //     fetchDiary();
+  //     Alert.alert("Success", "Diary is saved");
+  //   } catch (err: any) {
+  //     if (err.message.toLowerCase().includes("duplicate")) {
+  //       Alert.alert("Error", "Date is existed");
+  //     } else Alert.alert("Error", "Registration failed");
+  //   }
+  //   // TODO: persist entry
+  //   setText("");
+  //   Keyboard.dismiss();
+  // };
 
   return (
     <KeyboardAvoidingView
