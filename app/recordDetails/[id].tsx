@@ -21,7 +21,7 @@ export default function CardDetails() {
 
   // find the right record by id
   const record = useMemo(
-    () => records.find((item) => item.id === String(id)),
+    () => records.find((item) => String(item.id) === String(id)),
     [id, records]
   );
 
