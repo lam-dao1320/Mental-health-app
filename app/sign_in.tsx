@@ -32,10 +32,10 @@ const countries = [
 export default function SignIn() {
   const { setProfile, setRecords, setDiaryRecords, signIn } = useUserContext();
 
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
 
-  const [email, setEmail] = useState("lam.dao@edu.sait.ca");
-  const [password, setPassword] = useState("Lam1234");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [confirmedPassword, setConfirmedPassword] = useState("");
 
   const [firstName, setFirstName] = useState("");
