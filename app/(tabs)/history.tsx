@@ -64,11 +64,13 @@ export default function HistoryPage() {
           return;
         }
 
-        // console.log("Fetched records:", data); // 👈 debug to see structure
+        // console.log("Fetched records:", data);
 
         // filter the record by user email
-        const filteredRecord = data.filter((item) => item.user_email == profile?.email);
-        console.log("Fetched records:", filteredRecord)
+        const filteredRecord = data.filter(
+          (item) => item.user_email == profile?.email
+        );
+        // console.log("Fetched records:", filteredRecord);
         setRecords(filteredRecord || []);
       };
 
