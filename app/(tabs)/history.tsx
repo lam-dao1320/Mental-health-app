@@ -36,7 +36,7 @@ export default function HistoryPage() {
   const [records, setRecords] = useState<any[]>([]);
   const { profile } = useUserContext();
 
-  console.log("User profile", profile);
+  // console.log("User profile", profile);
 
   // load data whenever page is focused
   useFocusEffect(
@@ -70,7 +70,11 @@ export default function HistoryPage() {
         const filteredRecord = data.filter(
           (item) => item.user_email == profile?.email
         );
+<<<<<<< Updated upstream
         console.log("Fetched records:", filteredRecord);
+=======
+        // console.log("Fetched records:", filteredRecord)
+>>>>>>> Stashed changes
         setRecords(filteredRecord || []);
       };
 
