@@ -70,11 +70,7 @@ export default function HistoryPage() {
         const filteredRecord = data.filter(
           (item) => item.user_email == profile?.email
         );
-<<<<<<< Updated upstream
-        console.log("Fetched records:", filteredRecord);
-=======
-        // console.log("Fetched records:", filteredRecord)
->>>>>>> Stashed changes
+        // console.log("Fetched records:", filteredRecord);
         setRecords(filteredRecord || []);
       };
 
