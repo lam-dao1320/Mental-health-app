@@ -1,4 +1,5 @@
 import Card from "@/components/history/card";
+import { useUserContext } from "@/context/authContext";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
@@ -33,6 +34,9 @@ const moodToIndex = (m: string) => {
 
 export default function HistoryPage() {
   const [records, setRecords] = useState<any[]>([]);
+  const { profile } = useUserContext();
+
+  console.log("User profile", profile);
 
   // load data whenever page is focused
   useFocusEffect(
@@ -56,11 +60,18 @@ export default function HistoryPage() {
           .order("date", { ascending: false });
 
         if (error) {
-          console.error("Error fetching history:", error);
+          console.error("Error fetching mood_log history:", error);
           return;
         }
 
-        setRecords(data || []);
+        // console.log("Fetched records:", data); // 👈 debug to see structure
+
+        // filter the record by user email
+        const filteredRecord = data.filter(
+          (item) => item.user_email == profile?.email
+        );
+        console.log("Fetched records:", filteredRecord);
+        setRecords(filteredRecord || []);
       };
 
       load();

@@ -20,7 +20,7 @@ export type MoodRecord = {
 
 export type DiaryRecord = {
   id?: number;
-  user_email: string;
+  user_email?: string;
   body: string;
   date?: string;
 };

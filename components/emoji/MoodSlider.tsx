@@ -350,7 +350,13 @@ export default function EmojiPage() {
               visible={isOpen}
               onRequestClose={() => setIsOpen(false)}
             >
-              <Pressable style={styles.modalOverlay} onPress={handleClose}>
+              <TouchableWithoutFeedback
+                onPress={Keyboard.dismiss}
+                accessible={false}
+              >
+              <Pressable style={kbVisible
+                              ? styles.modalOverlayTop
+                              : styles.modalOverlay} onPress={handleClose}>
                 <Pressable
                   style={styles.modalContainer}
                   onPress={(e) => e.stopPropagation()}
@@ -360,10 +366,6 @@ export default function EmojiPage() {
                       style={{ flex: 1, backgroundColor: "#F9F9FB" }}
                       behavior={Platform.OS === "ios" ? "padding" : undefined}
                     >
-                      <TouchableWithoutFeedback
-                        onPress={Keyboard.dismiss}
-                        accessible={false}
-                      >
                         <View
                           style={[
                             styles.container,
@@ -378,7 +380,7 @@ export default function EmojiPage() {
                               flexDirection: "row",
                               justifyContent: "flex-end",
                               alignItems: "flex-end",
-                              padding: 10,
+                              padding: 8,
                             }}
                           >
                             <TouchableOpacity onPress={handleClose}>
@@ -453,11 +455,12 @@ export default function EmojiPage() {
                             </Pressable>
                           </View>
                         </View>
-                      </TouchableWithoutFeedback>
+                      
                     </KeyboardAvoidingView>
                   </ScrollView>
                 </Pressable>
               </Pressable>
+              </TouchableWithoutFeedback>
             </Modal>
 
             <View style={styles.pillRow}>
@@ -583,6 +586,13 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255,255,255,0.55)",
   },
   pillBtnText: { color: "#FFFFFF", fontWeight: "900", letterSpacing: 1 },
+  modalOverlayTop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-start",
+    paddingTop: 100,
+    alignItems: "center",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -597,11 +607,13 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   container: { flex: 1 },
-  containerCenter: { justifyContent: "center", alignItems: "center" },
+  containerCenter: { 
+    justifyContent: "center", 
+    alignItems: "center",
+  },
   containerTop: {
     justifyContent: "flex-start",
     alignItems: "center",
-    paddingTop: 24,
   },
   header: {
     color: "black",
@@ -614,7 +626,7 @@ const styles = StyleSheet.create({
     marginLeft: 15,
   },
   diaryCard: {
-    height: CARD_HEIGHT,
+    height: 200,
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",

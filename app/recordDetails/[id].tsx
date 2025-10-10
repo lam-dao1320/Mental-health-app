@@ -21,7 +21,7 @@ export default function CardDetails() {
 
   // find the right record by id
   const record = useMemo(
-    () => records.find((item) => item.id === String(id)),
+    () => records.find((item) => String(item.id) === String(id)),
     [id, records]
   );
 
@@ -43,7 +43,9 @@ export default function CardDetails() {
     );
   }
 
-  const headerText = record.mood + emojiForMood(record.mood);
+  const headerText = record.mood
+  ? record.mood + emojiForMood(record.mood)
+  : "No mood selected 😶";
 
   // Use diary body if available, else fallback
   const diaryBody = record.diary?.body ?? "(no diary written)";
