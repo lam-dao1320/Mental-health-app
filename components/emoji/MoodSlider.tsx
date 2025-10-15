@@ -476,19 +476,19 @@ export default function EmojiPage() {
                 onPress={handleHistory}
                 hitSlop={8}
               >
-                <Text style={styles.pillBtnText}>HISTORY</Text>
+                <Text style={styles.pillBtnText}>CHANGE</Text>
               </Pressable>
             </View>
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
-              <Text style={styles.pillText}>View Weekly Tracking Report</Text>
+              <Text style={styles.pillText}>How Was Your Week</Text>
               <Pressable
                 style={styles.pillBtn}
-                // onPress={() => router.push("/weekly")}
+                onPress={() => router.push({ pathname: "/(tabs)/Weekly" })}
                 hitSlop={8}
               >
-                <Text style={styles.pillBtnText}>WEEKLY</Text>
+                <Text style={styles.pillBtnText}>REPORT</Text>
               </Pressable>
             </View>
           </View>

@@ -109,7 +109,10 @@ export default function HistoryPage() {
             <Card
               record={{
                 id: item.id,
-                moodText: `Mood: ${item.mood} ${emoji}`,
+                moodText: `Mood: ${
+                  item.mood?.charAt(0).toUpperCase() +
+                  item.mood?.slice(1).toLowerCase()
+                } ${emoji}`,
                 dateText,
                 bodyText,
               }}
