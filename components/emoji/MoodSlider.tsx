@@ -207,6 +207,10 @@ export default function EmojiPage() {
         .select("id, diary_id"); // force return, so we can debug
 
       if (updateErr) throw updateErr;
+      console.log("✅ mood_log updated:", {
+        moodId: latest.id,
+        linkedDiaryId: diary.id,
+      });
 
       Alert.alert("Success", "Diary linked to recent mood!");
       fetchRecords();
