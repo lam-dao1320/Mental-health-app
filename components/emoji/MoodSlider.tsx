@@ -47,11 +47,11 @@ const MOODS = [
 ];
 
 const GRADIENTS: [string, string][] = [
-  ["#F49790", "#E06A6A"],
-  ["#ACD1C9", "#7CB7AB"],
-  ["#d6ed81ff", "#d6ed81ff"],
-  ["#F4CA90", "#F49790"],
-  ["#F49790", "#F49790"],
+  ["#F28B82", "#F49790"], // angry – warm coral red
+  ["#A7C7E7", "#89ABE3"], // sad – soft blue
+  ["#CDB4DB", "#B5838D"], // low – muted lavender
+  ["#FEEA9A", "#FFD166"], // okay – light yellow-gold
+  ["#B4E197", "#90EE90"], // great – fresh mint green
 ];
 
 const CARD_HEIGHT = 360;
@@ -337,7 +337,7 @@ export default function EmojiPage() {
             </View>
 
             <View style={styles.pillRow}>
-              <Text style={styles.pillText}>log with text</Text>
+              <Text style={styles.pillText}>Log with text</Text>
               <Pressable
                 style={styles.pillBtn}
                 onPress={handleDiaryToggle}
@@ -358,18 +358,21 @@ export default function EmojiPage() {
                 onPress={Keyboard.dismiss}
                 accessible={false}
               >
-              <Pressable style={kbVisible
-                              ? styles.modalOverlayTop
-                              : styles.modalOverlay} onPress={handleClose}>
                 <Pressable
-                  style={styles.modalContainer}
-                  onPress={(e) => e.stopPropagation()}
+                  style={
+                    kbVisible ? styles.modalOverlayTop : styles.modalOverlay
+                  }
+                  onPress={handleClose}
                 >
-                  <ScrollView>
-                    <KeyboardAvoidingView
-                      style={{ flex: 1, backgroundColor: "#F9F9FB" }}
-                      behavior={Platform.OS === "ios" ? "padding" : undefined}
-                    >
+                  <Pressable
+                    style={styles.modalContainer}
+                    onPress={(e) => e.stopPropagation()}
+                  >
+                    <ScrollView>
+                      <KeyboardAvoidingView
+                        style={{ flex: 1, backgroundColor: "#F9F9FB" }}
+                        behavior={Platform.OS === "ios" ? "padding" : undefined}
+                      >
                         <View
                           style={[
                             styles.container,
@@ -459,11 +462,10 @@ export default function EmojiPage() {
                             </Pressable>
                           </View>
                         </View>
-                      
-                    </KeyboardAvoidingView>
-                  </ScrollView>
+                      </KeyboardAvoidingView>
+                    </ScrollView>
+                  </Pressable>
                 </Pressable>
-              </Pressable>
               </TouchableWithoutFeedback>
             </Modal>
 
@@ -474,7 +476,19 @@ export default function EmojiPage() {
                 onPress={handleHistory}
                 hitSlop={8}
               >
-                <Text style={styles.pillBtnText}>HISTORY</Text>
+                <Text style={styles.pillBtnText}>CHANGE</Text>
+              </Pressable>
+            </View>
+
+            {/* Weekly Tracking */}
+            <View style={styles.pillRow}>
+              <Text style={styles.pillText}>How Was Your Week</Text>
+              <Pressable
+                style={styles.pillBtn}
+                onPress={() => router.push({ pathname: "/(tabs)/Weekly" })}
+                hitSlop={8}
+              >
+                <Text style={styles.pillBtnText}>REPORT</Text>
               </Pressable>
             </View>
           </View>
@@ -484,7 +498,7 @@ export default function EmojiPage() {
   );
 }
 
-const BOTTOM_DOCK_ROWS = 3;
+const BOTTOM_DOCK_ROWS = 4;
 const DOCK_ROW_HEIGHT = 48;
 const DOCK_GAP = 10;
 const DOCK_PADDING = 12;
@@ -498,7 +512,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#F6F5F2" },
   page: { flex: 1, justifyContent: "center", paddingHorizontal: 16 },
   card: {
-    height: 520,
+    height: 550,
     borderRadius: 28,
     overflow: "hidden",
     paddingHorizontal: 18,
@@ -514,7 +528,7 @@ const styles = StyleSheet.create({
   },
   bigWord: {
     position: "absolute",
-    top: 30,
+    top: 10,
     left: 24,
     right: 24,
     textAlign: "center",
@@ -525,7 +539,7 @@ const styles = StyleSheet.create({
   },
   centerWrap: {
     position: "absolute",
-    top: -120,
+    top: -250,
     left: 0,
     right: 0,
     bottom: 0,
@@ -543,7 +557,7 @@ const styles = StyleSheet.create({
     left: 14,
     right: 14,
     bottom: RESERVED_BOTTOM,
-    height: 60,
+    height: 80,
     justifyContent: "center",
     zIndex: 3,
     elevation: 3,
@@ -611,8 +625,8 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   container: { flex: 1 },
-  containerCenter: { 
-    justifyContent: "center", 
+  containerCenter: {
+    justifyContent: "center",
     alignItems: "center",
   },
   containerTop: {
