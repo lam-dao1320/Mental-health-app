@@ -1,3 +1,5 @@
+import { useUserContext } from "@/context/authContext";
+import { getUserByEmail, updateUser } from "@/lib/user_crud";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -11,6 +13,7 @@ import {
 } from "react-native";
 
 export default function Summary() {
+  const { profile, setProfile } = useUserContext();
   const { a } = useLocalSearchParams<{ a: string }>();
   const [showInfo, setShowInfo] = useState(false); // ✅ added missing state
 
@@ -78,7 +81,25 @@ export default function Summary() {
   };
 
   const handleSubmit = async () => {
+    let updatedProfile = {
+      first_name: profile?.first_name || "",
+      last_name: profile?.last_name || "",
+      email: profile?.email || "",
+      phone: profile?.phone || "",
+      birth_date: profile?.birth_date || null,
+      country: profile?.country || "",
+      depression: depression,
+      anxiety: anxiety,
+      overall: total,
+      checked_in_at: new Date(),
+    };
+    // console.log("Updated profile to submit:", updatedProfile);
     try {
+      await updateUser(updatedProfile);
+      if (profile) { 
+        const profileData = await getUserByEmail(profile.email); 
+        setProfile(profileData); 
+      }
       router.push("/(tabs)");
     } catch (err: any) {
       Alert.alert("Error", "Could not save results");
