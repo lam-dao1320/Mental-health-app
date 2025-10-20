@@ -66,13 +66,13 @@ export default function HomeScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
             <View
-              style={[styles.iconContainer, { backgroundColor: "#EAF6F2" }]}
+              style={[styles.iconContainer, { backgroundColor: "#eaedf6ff" }]}
             >
-              <Ionicons name="help-circle" size={40} color="#ACD1C9" />
+              <Ionicons name="help-circle" size={40} color="#acaed1ff" />
             </View>
             <Text style={styles.actionTitle}>Mental check‑in</Text>
             <Text style={styles.actionDescription}>
-              Let do the questionnaire again if you feel mind changed{" "}
+              Check in again if your mood changes
             </Text>
           </TouchableOpacity>
         </View>

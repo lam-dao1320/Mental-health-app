@@ -3,7 +3,8 @@ import { getDiaryByEmail } from "@/lib/diary_crud";
 import { getRecordsByEmail } from "@/lib/mood_crud";
 import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Keyboard,
@@ -16,68 +17,53 @@ import {
   TouchableWithoutFeedback,
   View,
 } from "react-native";
-import { addUser, getUserByEmail } from "../lib/user_crud";
-
-const countries = [
-  "United States",
-  "Canada",
-  "China",
-  "HongKong",
-  "Vietnam",
-  "Korea",
-  "Philippine",
-  "Other",
-];
+import { getUserByEmail } from "../lib/user_crud";
 
 export default function SignIn() {
   const { setProfile, setRecords, setDiaryRecords, signIn } = useUserContext();
-
-  const [step, setStep] = useState(0);
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmedPassword, setConfirmedPassword] = useState("");
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [country, setCountry] = useState("");
-  const [phone, setPhone] = useState("");
-
-  const [birthDay, setBirthDay] = useState("");
-  const [birthMonth, setBirthMonth] = useState("");
-  const [birthYear, setBirthYear] = useState("");
-
+  const [confirm, setConfirm] = useState("");
+  const [remember, setRemember] = useState(false);
   const [isSignIn, setIsSignIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
 
-  const handleNext = () => {
-    if (step < 2) setStep(step + 1);
-    else router.push("/");
+  useEffect(() => {
+    const checkSaved = async () => {
+      const savedEmail = await SecureStore.getItemAsync("email");
+      const savedPassword = await SecureStore.getItemAsync("password");
+      if (savedEmail && savedPassword) {
+        try {
+          setLoading(true);
+          await doLogin(savedEmail, savedPassword);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    checkSaved();
+  }, []);
+
+  const hydrateAndGo = async (userEmail: string) => {
+    const profileData = await getUserByEmail(userEmail);
+    setProfile(profileData);
+    const moodData = await getRecordsByEmail(userEmail);
+    setRecords(moodData);
+    const diaryData = await getDiaryByEmail(userEmail);
+    setDiaryRecords(diaryData);
+    router.replace("/(tabs)");
+    router.dismissAll();
   };
 
-  const handleSignUp = async () => {
-    if (!email || !password || !confirmedPassword) {
-      setError("All fields are required");
-      return;
+  const doLogin = async (e: string, p: string) => {
+    await signIn(e, p);
+    if (remember) {
+      await SecureStore.setItemAsync("email", e);
+      await SecureStore.setItemAsync("password", p);
     }
-    if (password != confirmedPassword) {
-      setError("Confirmed password is not match");
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      await signUp(email, password);
-      handleNext();
-      setIsSignIn(!isSignIn);
-    } catch (err: any) {
-      setError(err instanceof Error ? err.message : "Registration failed");
-    } finally {
-      setLoading(false);
-    }
+    await hydrateAndGo(e);
   };
 
   const handleAuth = async () => {
@@ -85,22 +71,18 @@ export default function SignIn() {
       setError("Email and password are required");
       return;
     }
+    if (!isSignIn && password !== confirm) {
+      setError("Passwords do not match");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
       if (isSignIn) {
-        await signIn(email, password);
-        if (step == 0) {
-          const profileData = await getUserByEmail(email);
-          setProfile(profileData);
-          const moodData = await getRecordsByEmail(email);
-          setRecords(moodData);
-          const diaryData = await getDiaryByEmail(email);
-          setDiaryRecords(diaryData);
-          router.push("/(tabs)");
-        } else handleNext();
+        await doLogin(email, password);
       } else {
-        await handleSignUp();
+        await signUp(email, password);
+        await doLogin(email, password);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
@@ -109,102 +91,17 @@ export default function SignIn() {
     }
   };
 
-  const handleForgotPassword = async () => {
+  const handleForgot = async () => {
     if (!email) {
-      setError("Email is required");
+      setError("Enter your email first");
       return;
     }
-    setLoading(true);
-    setError(null);
     try {
+      setLoading(true);
       await forgotPassword(email);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Resetting password failed"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegisterUser = async () => {
-    setError(null);
-
-    if (!firstName || !lastName) {
-      setError("Information is required");
-      return;
-    }
-
-    let birthDate = null;
-
-    // Validate birth date
-    if (birthDay && birthMonth && birthYear) {
-      const day = parseInt(birthDay, 10);
-      const month = parseInt(birthMonth, 10);
-      const year = parseInt(birthYear, 10);
-
-      if (isNaN(day) || isNaN(month) || isNaN(year)) {
-        setError("Birth date must contain only numbers.");
-        return;
-      }
-
-      const dateCheck = new Date(year, month - 1, day);
-      const currentYear = new Date().getFullYear();
-
-      if (
-        day < 1 ||
-        day > 31 ||
-        month < 1 ||
-        month > 12 ||
-        year < 1900 ||
-        year > currentYear
-      ) {
-        setError("Please enter a valid day, month, and year.");
-        return;
-      }
-
-      // Check if the constructed date matches the input values (validates Feb 30, Apr 31, etc.)
-      if (
-        dateCheck.getFullYear() !== year ||
-        dateCheck.getMonth() !== month - 1 ||
-        dateCheck.getDate() !== day
-      ) {
-        setError("The date entered is invalid (e.g., check days in month).");
-        return;
-      }
-
-      // Check if date is in the future
-      if (dateCheck > new Date()) {
-        setError("Birth date cannot be in the future.");
-        return;
-      }
-
-      birthDate = dateCheck;
-    }
-
-    let newProfile = {
-      first_name: firstName,
-      last_name: lastName,
-      email: email,
-      phone: phone,
-      birth_date: birthDate,
-      country: country.trim(),
-      phq: 0,
-      gad: 0,
-    };
-
-    try {
-      await addUser(newProfile);
-      const data = await getUserByEmail(email);
-      setProfile(data);
-      router.push("/(questionnaire)");
-    } catch (err: any) {
-      if (err.message.toLowerCase().includes("duplicate")) {
-        setError("Email is existed");
-      } else {
-        // console.error(err.message);
-        setError("Registration failed");
-      }
+      setError("Password reset email sent");
+    } catch {
+      setError("Reset failed");
     } finally {
       setLoading(false);
     }
@@ -212,218 +109,93 @@ export default function SignIn() {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: "f9f9fb" }}
+      style={{ flex: 1, backgroundColor: "#F4F8F7" }}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.container}>
-          <Text style={styles.welcomeText}>Welcome to Mindlog</Text>
-          <Text style={styles.subtitleText}>Please sign in to continue</Text>
+          <Text style={styles.welcome}>Welcome to Mindlog</Text>
+          <Text style={styles.subtitle}>
+            {isSignIn ? "Take a moment to check in" : "Create your account"}
+          </Text>
 
-          {/* Sign In and Sign Up */}
-          {step == 0 && (
-            <View style={styles.card}>
-              <Text style={styles.title}>
-                {isSignIn ? "Sign In" : "Sign Up"}
-              </Text>
+          <View style={styles.card}>
+            {error && <Text style={styles.error}>{error}</Text>}
 
-              {error && <Text style={styles.errorText}>{error}</Text>}
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
+            />
 
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              placeholderTextColor="#9CA3AF"
+            />
+
+            {!isSignIn && (
               <TextInput
                 style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                placeholderTextColor="#4B5563"
-              />
-
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                value={password}
-                onChangeText={setPassword}
+                placeholder="Confirm password"
+                value={confirm}
+                onChangeText={setConfirm}
                 secureTextEntry
-                placeholderTextColor="#4B5563"
+                placeholderTextColor="#9CA3AF"
               />
+            )}
 
-              {!isSignIn && (
-                <>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Confirmed Password"
-                    value={confirmedPassword}
-                    onChangeText={setConfirmedPassword}
-                    secureTextEntry
-                    placeholderTextColor="#4B5563"
-                  />
-                </>
-              )}
+            <TouchableOpacity
+              style={[
+                styles.checkboxContainer,
+                remember && styles.checkboxActive,
+              ]}
+              onPress={() => setRemember(!remember)}
+            >
+              <Text style={styles.checkboxText}>
+                {remember ? "✓ Remember Me" : "Remember Me"}
+              </Text>
+            </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleAuth}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.buttonText}>
-                    {isSignIn ? "Sign In" : "Sign Up"}
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => setIsSignIn(!isSignIn)}
-                style={styles.switchModeButton}
-              >
-                <Text style={styles.switchModeText}>
-                  {isSignIn
-                    ? "Don't have an account? Sign Up"
-                    : "Already have an account? Sign In"}
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleAuth}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {isSignIn ? "Sign In" : "Sign Up"}
                 </Text>
-              </TouchableOpacity>
-
-              {isSignIn && (
-                <TouchableOpacity
-                  onPress={handleForgotPassword}
-                  style={styles.switchModeButton}
-                >
-                  <Text style={styles.errorText}>Forgot your password?</Text>
-                </TouchableOpacity>
               )}
-            </View>
-          )}
+            </TouchableOpacity>
 
-          {/* Step 1: Confirmed Email */}
-          {step == 1 && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Confirmed Your Email</Text>
+            <TouchableOpacity onPress={handleForgot}>
+              <Text style={styles.forgot}>Forgot password</Text>
+            </TouchableOpacity>
 
-              {error && <Text style={styles.errorText}>{error}</Text>}
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleAuth}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.buttonText}>Yes, I confirmed</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Step 2: Fill in User Information */}
-          {step == 2 && (
-            <View style={styles.card}>
-              <Text style={styles.title}>Create Your Profile</Text>
-
-              {error && <Text style={styles.errorText}>{error}</Text>}
-
-              {/* First Name */}
-              <View style={styles.inputRow}>
-                <View style={{flex: 1, marginBottom: 0, marginRight: 10}}>
-                  <Text style={styles.label}>First Name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={firstName}
-                    onChangeText={setFirstName}
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                {/* Last Name */}
-                <View style={{flex: 1, marginBottom: 0, marginLeft: 10}}>
-                  <Text style={styles.label}>Last Name</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={lastName}
-                    onChangeText={setLastName}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              {/* Country */}
-              <View style={styles.inputRow}>
-                <View style={{flex: 1, marginBottom: 0, marginRight: 10}}>
-                  <Text style={styles.label}>Country</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="e.g., United States"
-                    value={country}
-                    onChangeText={setCountry}
-                    autoCapitalize="words"
-                  />
-                </View>
-
-                {/* Phone */}
-                <View style={{flex: 1, marginBottom: 0, marginLeft: 10}}>
-                  <Text style={styles.label}>Phone</Text>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="10 characters"
-                    value={phone}
-                    onChangeText={setPhone}
-                    autoCapitalize="words"
-                  />
-                </View>
-              </View>
-
-              {/* Birth Date Inputs (Day, Month, Year) */}
-              <Text style={styles.label}>Birth Date</Text>
-              <View style={styles.inputRow}>
-                <TextInput
-                  style={[styles.input, styles.dateInput]}
-                  placeholder="DD"
-                  value={birthDay}
-                  onChangeText={setBirthDay}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholderTextColor="#6B7280"
-                />
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.dateInput,
-                    { marginHorizontal: 10 },
-                  ]}
-                  placeholder="MM"
-                  value={birthMonth}
-                  onChangeText={setBirthMonth}
-                  keyboardType="numeric"
-                  maxLength={2}
-                  placeholderTextColor="#6B7280"
-                />
-                <TextInput
-                  style={[styles.input, styles.dateInput]}
-                  placeholder="YYYY"
-                  value={birthYear}
-                  onChangeText={setBirthYear}
-                  keyboardType="numeric"
-                  maxLength={4}
-                  placeholderTextColor="#6B7280"
-                />
-              </View>
-
-              <TouchableOpacity
-                style={styles.button}
-                onPress={handleRegisterUser}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#ffffff" />
-                ) : (
-                  <Text style={styles.buttonText}>Submit</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          )}
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={() => {
+                setIsSignIn(!isSignIn);
+                setError(null);
+              }}
+            >
+              <Text style={styles.secondaryText}>
+                {isSignIn
+                  ? "Need an account?  Sign Up"
+                  : "Have an account?  Sign In"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -433,108 +205,72 @@ export default function SignIn() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F9F9FB",
-    alignItems: "center",
     justifyContent: "center",
-    padding: 20,
+    alignItems: "center",
+    paddingHorizontal: 25,
+  },
+  welcome: {
+    fontSize: 30,
+    fontWeight: "bold",
+    color: "#1D1D1F",
+    marginBottom: 8,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
+  },
+  subtitle: {
+    fontSize: 16,
+    color: "#6B7280",
+    marginBottom: 24,
+    fontFamily: "Noto Sans HK",
   },
   card: {
     width: "100%",
     backgroundColor: "#FFFFFF",
-    borderRadius: 28,
-    paddingVertical: 20,
+    borderRadius: 26,
+    paddingVertical: 25,
     paddingHorizontal: 20,
-    alignItems: "center",
-    justifyContent: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 4,
-    marginTop: 40,
-  },
-  welcomeText: {
-    fontSize: 30,
-    fontWeight: "bold",
-    color: "#1D1D1F",
-    textAlign: "center",
-    marginBottom: 10,
-    fontFamily: "Noto Sans HK",
-  },
-  subtitleText: {
-    fontSize: 16,
-    color: "#6B7280",
-    marginBottom: 24,
-    textAlign: "center",
-    fontFamily: "Noto Sans HK",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#1D1D1F",
-    marginBottom: 20,
-    textAlign: "center",
-    fontFamily: "Noto Sans HK",
-  },
-  label: {
-    fontSize: 14,
-    color: "#1D1D1F",
-    marginBottom: 5,
-    fontWeight: 600,
-    fontFamily: "Noto Sans HK",
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
   },
   input: {
     height: 50,
-    width: "100%",
     borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
     marginBottom: 15,
-    paddingHorizontal: 10,
-    backgroundColor: "#fcfae1",
-    fontFamily: "Noto Sans HK",
+    backgroundColor: "#FAFAFA",
+    fontSize: 16,
+    color: "#111827",
   },
   button: {
     backgroundColor: "#ACD1C9",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 32,
     borderRadius: 25,
-  },
-  buttonText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "white",
-    marginRight: 10,
-    fontFamily: "Noto Sans HK",
-  },
-  errorText: {
-    color: "#F49790",
-    marginBottom: 15,
-    textAlign: "center",
-    fontFamily: "Noto Sans HK",
-  },
-  switchModeButton: {
-    marginTop: 15,
-    padding: 10,
+    paddingVertical: 14,
     alignItems: "center",
-    fontFamily: "Noto Sans HK",
+    marginTop: 5,
   },
-  switchModeText: {
+  buttonText: { color: "#fff", fontWeight: "bold", fontSize: 18 },
+  error: { color: "#F49790", textAlign: "center", marginBottom: 12 },
+  forgot: {
     color: "#0284c7",
     fontSize: 14,
-    fontFamily: "Noto Sans HK",
-  },
-  inputRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  },
-  dateInput: {
-    flex: 1,
+    marginTop: 12,
     textAlign: "center",
-    marginBottom: 0,
   },
+  checkboxContainer: {
+    alignSelf: "flex-end",
+    marginBottom: 10,
+  },
+  checkboxText: {
+    color: "#6B7280",
+    fontSize: 14,
+  },
+  checkboxActive: {
+    borderColor: "#ACD1C9",
+  },
+  secondaryButton: { marginTop: 10, alignItems: "center" },
+  secondaryText: { color: "#6B7280", fontSize: 14 },
 });
