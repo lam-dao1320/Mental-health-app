@@ -1,14 +1,22 @@
-import { ai, quickStressActivitiesSchema } from "./geminiAI";
+import { activitiesSchema, activityAI } from "./geminiAI";
 
-export async function suggestQuickActivities(status: string) {
+export async function suggestActivities(status: string) {
+    // Construct the prompt for the AI model
+    const prompt = 
+        `${status}. You are an AI Wellness Coach.
+        Your goal is to suggest 5 distinct categories of stress-relief activities suitable for someone who has 30 minutes, is at their desk, and needs a non-disruptive activity.
+        For each category, provide 3 specific activities with instructions and a helpful resource link.`;
+
+    console.log("AI Activity Suggestion Prompt:", prompt);
+
     try {
-        const response = await ai.models.generateContent({
+        const response = await activityAI.models.generateContent({
             model: "gemini-2.5-flash",
-            contents: `Today I am feeling ${status}. You are an AI Wellness Coach. Suggest 3 distinct categories of stress-relief activities suitable for someone who has 10 minutes, is at their desk, and needs a non-disruptive activity. For each category, provide 3 specific activities with instructions and a helpful resource link.`,
+            contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: quickStressActivitiesSchema,
-                temperature: 0.7,
+                responseSchema: activitiesSchema,
+                temperature: 0.5,
             }
         });
         console.log("AI Response Text:", response.text?.trim());

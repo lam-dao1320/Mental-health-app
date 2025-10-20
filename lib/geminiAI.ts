@@ -1,12 +1,12 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
+const activityApiKey = process.env.EXPO_PUBLIC_ACTIVITY_API_KEY || "";
+const planApiKey = process.env.EXPO_PUBLIC_PLAN_API_KEY || "";
 
-console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
+export const activityAI = new GoogleGenAI({apiKey: activityApiKey});
+export const planAI = new GoogleGenAI({apiKey: planApiKey});
 
-export const ai = new GoogleGenAI({apiKey: apiKey});
-
-export const quickStressActivitiesSchema = {
+export const activitiesSchema = {
   type: Type.OBJECT,
   properties: {
     categories: {

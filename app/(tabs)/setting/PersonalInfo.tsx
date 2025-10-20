@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Dimensions,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -98,112 +100,117 @@ export default function PersonalInfoScreen() {
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: Colors.bg }}
-      contentContainerStyle={{
-        flexGrow: 1, // ensures container takes full height
-        alignItems: "center", // horizontal center
-        justifyContent: "center", // vertical center
-        padding: 16,
-        gap: 16,
-      }}
-      keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#F4F8F7" }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={{ width: "100%", maxWidth: MAX_WIDTH }}>
-        <Text style={styles.title}>Personal Info</Text>
-        {error && <Text style={styles.errorText}>{error}</Text>}
-      </View>
-      {/* Form */}
-      <View
-        style={[
-          styles.card,
-          styles.shadow,
-          { width: "100%", maxWidth: MAX_WIDTH },
-        ]}
+      <ScrollView
+        style={{ flex: 1, backgroundColor: Colors.bg }}
+        contentContainerStyle={{
+          flexGrow: 1, // ensures container takes full height
+          alignItems: "center", // horizontal center
+          justifyContent: "center", // vertical center
+          padding: 16,
+          gap: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
       >
-        <Field label="First name">
-          <TextInput
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="Enter first name"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-        </Field>
-        <Field label="Last name">
-          <TextInput
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Enter last name"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            autoCapitalize="words"
-            returnKeyType="next"
-          />
-        </Field>
-        <Field label="Birth Date">
-          <TextInput
-            value={birthDate}
-            onChangeText={setBirthDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            autoCapitalize="none"
-            returnKeyType="next"
-          />
-        </Field>
+        <View style={{ width: "100%", maxWidth: MAX_WIDTH }}>
+          <Text style={styles.title}>Personal Info</Text>
+          {error && <Text style={styles.errorText}>{error}</Text>}
+        </View>
+        {/* Form */}
+        <View
+          style={[
+            styles.card,
+            styles.shadow,
+            { width: "100%", maxWidth: MAX_WIDTH },
+          ]}
+        >
+          <Field label="First name">
+            <TextInput
+              value={firstName}
+              onChangeText={setFirstName}
+              placeholder="Enter first name"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </Field>
+          <Field label="Last name">
+            <TextInput
+              value={lastName}
+              onChangeText={setLastName}
+              placeholder="Enter last name"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+          </Field>
+          <Field label="Birth Date">
+            <TextInput
+              value={birthDate}
+              onChangeText={setBirthDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              autoCapitalize="none"
+              returnKeyType="next"
+            />
+          </Field>
 
-        <Divider />
+          <Divider />
 
-        <Field label="Email">
-          <TextInput
-            value={email}
-            onChangeText={setEmail}
-            placeholder="name@example.com"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            returnKeyType="next"
-            editable={false}
-          />
-        </Field>
+          <Field label="Email">
+            <TextInput
+              value={email}
+              onChangeText={setEmail}
+              placeholder="name@example.com"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              returnKeyType="next"
+              editable={false}
+            />
+          </Field>
 
-        <Field label="Phone">
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="10 characters"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            keyboardType="numeric"
-            returnKeyType="next"
-          />
-        </Field>
-        <Field label="Country">
-          <TextInput
-            value={country}
-            onChangeText={setCountry}
-            placeholder="e.g., United States"
-            placeholderTextColor="rgba(0,0,0,0.35)"
-            style={styles.input}
-            autoCapitalize="words"
-            returnKeyType="done"
-          />
-        </Field>
-      </View>
+          <Field label="Phone">
+            <TextInput
+              value={phone}
+              onChangeText={setPhone}
+              placeholder="10 characters"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              keyboardType="numeric"
+              returnKeyType="next"
+            />
+          </Field>
+          <Field label="Country">
+            <TextInput
+              value={country}
+              onChangeText={setCountry}
+              placeholder="e.g., United States"
+              placeholderTextColor="rgba(0,0,0,0.35)"
+              style={styles.input}
+              autoCapitalize="words"
+              returnKeyType="done"
+            />
+          </Field>
+        </View>
 
-      <Pressable
-        style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.95 }]}
-        onPress={handleSave}
-        hitSlop={8}
-      >
-        <Ionicons name="checkmark" size={18} color="#fff" />
-        <Text style={styles.saveText}>Save changes</Text>
-      </Pressable>
-    </ScrollView>
+        <Pressable
+          style={({ pressed }) => [styles.saveBtn, pressed && { opacity: 0.95 }]}
+          onPress={handleSave}
+          hitSlop={8}
+        >
+          <Ionicons name="checkmark" size={18} color="#fff" />
+          <Text style={styles.saveText}>Save changes</Text>
+        </Pressable>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

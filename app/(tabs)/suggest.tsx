@@ -1,63 +1,74 @@
-import React, { useState } from "react";
+import { useUserContext } from "@/context/authContext";
+import { suggestActivities } from "@/lib/geminiAI_func";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import QuickActivitySuggestion from "../../components/suggestion/quickActivity";
-import { suggestQuickActivities } from "../../lib/geminiAI_func";
-
-const suggestions = [
-  "Take a 10-minute walk outside.",
-  "Try deep breathing exercises.",
-  "Listen to your favorite song.",
-  "Write down three things you're grateful for.",
-  "Do a quick body stretch.",
-  "Drink a glass of water.",
-  "Practice mindfulness for 5 minutes.",
-  "Call or text a friend.",
-  "Try a new hobby or craft.",
-  "Read a page of a book.",
-  "Watch a funny video.",
-  "Declutter your workspace.",
-  "Meditate for 5 minutes.",
-  "Spend time with a pet or nature.",
-  "Plan a small goal for the day.",
-];
+import ActivitySuggestion from "../../components/suggestion/activity";
+import { getRecordsByEmail } from "../../lib/mood_crud";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function SuggestPage() {
+
+  const { profile } = useUserContext();
+
   const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
+  const [activityLoading, setActivityLoading] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentSuggestion, setCurrentSuggestion] = useState(
-    suggestions[Math.floor(Math.random() * suggestions.length)]
-  );
+  const [currentSuggestion, setCurrentSuggestion] = useState();
 
-  const handleNewSuggestion = () => {
-    let nextSuggestion;
-    do {
-      nextSuggestion =
-        suggestions[Math.floor(Math.random() * suggestions.length)];
-    } while (nextSuggestion === currentSuggestion);
-    setCurrentSuggestion(nextSuggestion);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      if (profile) {
+        try {
+          const loadData = async () => {
+            const moodData = await getRecordsByEmail(profile.email);
+            // console.log("Loaded mood records for suggestion page:", moodData);
+            setData(moodData[0]); // get the latest record
+          };
+          loadData();
+        } catch (error) {
+          setError("Error loading mood records:" + error);
+        }
+      }
+    }, [])
+  )
 
-  const handleAISuggestion = async () => {
-    setLoading(true);
+  const handleActivitySuggestion = async () => {
+    setActivityLoading(true);
     setError(null);
     try {
-      const aiResponse = await suggestQuickActivities("stressed with assignment deadlines");
-      setData(JSON.parse(aiResponse));
-      console.log("AI Suggested Activities:", aiResponse);
+      const aiResponse = await suggestActivities(status(data));
+      setCurrentSuggestion(JSON.parse(aiResponse));
+      // console.log("AI Suggested Activities:", aiResponse);
       // You can update the UI with AI suggestions here
     } catch (error) {
       setError("Error fetching AI suggestions: " + error);
     } finally {
-      setLoading(false);
+      setActivityLoading(false);
     }
+  }
+
+  const status = (data: any) => {
+    if (!data) return "";
+    let status = "Now, I live in Canada.";
+    if (profile?.country) status += ` I'm from ${profile.country}.`;
+    const d = new Date(data.date);
+    let recordDate = d.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+    if (data.diary) 
+      return status + ` I'm feeling ${data.mood} (Recorded on ${recordDate}) because ${data.diary.body}`;
+    else 
+      return status + ` I'm feeling ${data.mood} (Recorded on ${recordDate})`;
   }
 
   const press = useSharedValue(1);
@@ -71,27 +82,39 @@ export default function SuggestPage() {
       <Text style={styles.title}>Try Something Now</Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
-      {data ? <QuickActivitySuggestion data={data} /> : (
+      {currentSuggestion && <ActivitySuggestion data={currentSuggestion} /> }
 
-      <Animated.View style={styles.suggestionBox}>
-        <Text style={styles.suggestionText}>{currentSuggestion}</Text>
+      <Animated.View style={{ flexDirection: "row", marginTop: 30 }}>
+        <AnimatedPressable
+          onPressIn={() => (press.value = withSpring(0.96))}
+          onPressOut={() => (press.value = withSpring(1))}
+          onPress={handleActivitySuggestion}
+          style={[styles.button, animStyle, { flex: 1, marginHorizontal: 8, backgroundColor: "#F49790" }]}
+          android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
+          disabled={planLoading || activityLoading}
+        >
+          {activityLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Get Activity Suggestion</Text>
+          )}
+        </AnimatedPressable>
+
+        <AnimatedPressable
+          onPressIn={() => (press.value = withSpring(0.96))}
+          onPressOut={() => (press.value = withSpring(1))}
+          onPress={handleActivitySuggestion}
+          style={[styles.button, animStyle, { flex: 1, marginHorizontal: 8 }]}
+          android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
+          disabled={activityLoading || planLoading}
+        >
+          {planLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Get Plan Suggestion</Text>
+          )}
+        </AnimatedPressable>
       </Animated.View>
-      )}
-
-      <AnimatedPressable
-        onPressIn={() => (press.value = withSpring(0.96))}
-        onPressOut={() => (press.value = withSpring(1))}
-        onPress={handleAISuggestion}
-        style={[styles.button, animStyle]}
-        android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
-        disabled={loading}
-      >
-        {loading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Get New Suggestion</Text>
-        )}
-      </AnimatedPressable>
     </Animated.View>
   );
 }
@@ -107,7 +130,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    marginBottom: 40,
+    marginBottom: 30,
     fontFamily: "Noto Sans HK",
     textAlign: "center",
     alignSelf: "center",
@@ -137,7 +160,8 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: "#ACD1C9",
-    paddingVertical: 14,
+    marginTop: 30,
+    paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 25,
     alignItems: "center",

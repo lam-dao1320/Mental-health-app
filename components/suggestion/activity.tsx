@@ -2,8 +2,8 @@ import { Activity, ActivityCategory } from "@/lib/object_types";
 import { useState } from "react";
 import { FlatList, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-export default function QuickActivitySuggestion(data: any) {
-  console.log("QuickActivitySuggestion received data:", data.data.categories[0]);
+export default function ActivitySuggestion(data: any) {
+  // console.log("QuickActivitySuggestion received data:", data.data.categories[0]);
   // selectedId now tracks the name of the expanded category
   const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
 
@@ -18,12 +18,14 @@ export default function QuickActivitySuggestion(data: any) {
       {activities.map((activity, index) => (
         <View key={index} style={styles.activityItem}>
           <Text style={styles.activityDescription}>• {activity.description}</Text>
-          <TouchableOpacity 
-            onPress={() => Linking.openURL(activity.link)} 
-            style={styles.linkButton}
-          >
-            <Text style={styles.linkText}>View Resource 🔗</Text>
-          </TouchableOpacity>
+          {activity.link &&
+            <TouchableOpacity 
+              onPress={() => Linking.openURL(activity.link)} 
+              style={styles.linkButton}
+            >
+              <Text style={styles.linkText}>View Resource 🔗</Text>
+            </TouchableOpacity>
+          }
         </View>
       ))}
     </View>
@@ -70,7 +72,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 30,
     paddingHorizontal: 20,
-    marginBottom: 20,
     backgroundColor: '#f5f5f5',
   },
   header: {
@@ -107,7 +108,7 @@ const styles = StyleSheet.create({
   },
   details: {
     paddingHorizontal: 15,
-    paddingBottom: 10,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fafafa',

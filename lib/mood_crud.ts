@@ -21,10 +21,7 @@ export async function getRecordsByEmail(email: string) {
     .limit(50);
 
   if (error) {
-    console.error(
-      `Error fetching diary history with user email ${email}: `,
-      error
-    );
+    console.error(`Error fetching history with user email ${email}: `,error);
     throw error;
   }
 
