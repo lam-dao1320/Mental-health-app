@@ -43,6 +43,7 @@ export default function PersonalInfoScreen() {
 
   const [error, setError] = useState<string | null>(null);
 
+  // console.log("Profile data in PersonalInfo screen:", profile);
   
   const handleSave = async () => {
     setError(null);
@@ -81,8 +82,10 @@ export default function PersonalInfoScreen() {
       phone: phone ?? "",
       birth_date: birthDateCheck ?? null,
       country: country ?? "",
-      phq: profile?.phq ?? 0,
-      gad: profile?.gad ?? 0,
+      depression: profile?.depression ?? null,
+      anxiety: profile?.anxiety ?? null,
+      overall: profile?.overall ?? null,
+      checked_in_at: profile?.checked_in_at ?? null,
     }
 
     // console.log("Update profile: ", updatedProfile);

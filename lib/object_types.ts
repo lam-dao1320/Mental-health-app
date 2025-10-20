@@ -6,8 +6,10 @@ export interface UserProfile {
   birth_date: Date | null;
   country: string;
   phone: string;
-  phq: number;
-  gad: number;
+  depression: number | null;
+  anxiety: number | null;
+  overall: number | null;
+  checked_in_at: Date | null;
 }
 
 export type MoodRecord = {
@@ -34,4 +36,15 @@ export interface Activity {
 export interface ActivityCategory {
   name: string;
   activities: Activity[];
+}
+
+export interface Plan {
+  name: string;
+  type: string;
+  details: string;
+  rationale: string;
+}
+
+export interface PlanActivities {
+  plan_activities: Plan[];
 }

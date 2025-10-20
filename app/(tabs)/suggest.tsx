@@ -1,5 +1,6 @@
+import PlanSuggestion from "@/components/suggestion/plan";
 import { useUserContext } from "@/context/authContext";
-import { suggestActivities } from "@/lib/geminiAI_func";
+import { suggestActivities, suggestPlans } from "@/lib/geminiAI_func";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
@@ -21,7 +22,8 @@ export default function SuggestPage() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentSuggestion, setCurrentSuggestion] = useState();
+  const [activitySuggestion, setActivitySuggestion] = useState<any | null>(null);
+  const [planSuggestion, setPlanSuggestion] = useState<any | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,15 +45,41 @@ export default function SuggestPage() {
   const handleActivitySuggestion = async () => {
     setActivityLoading(true);
     setError(null);
+    setPlanSuggestion(null);
     try {
       const aiResponse = await suggestActivities(status(data));
-      setCurrentSuggestion(JSON.parse(aiResponse));
+      setActivitySuggestion(JSON.parse(aiResponse));
       // console.log("AI Suggested Activities:", aiResponse);
       // You can update the UI with AI suggestions here
     } catch (error) {
       setError("Error fetching AI suggestions: " + error);
     } finally {
       setActivityLoading(false);
+    }
+  }
+
+  const handlePlanSuggestion = async () => {
+    setPlanLoading(true);
+    setError(null);
+    setActivitySuggestion(null);
+    if (!profile) {
+      setError("Must sign in access");
+      setPlanLoading(false);
+      return;
+    }
+    if (!profile.depression || !profile.anxiety || !profile.overall) {
+      setError("Must check-in mental wellness");
+      setPlanLoading(false);
+      return;
+    }
+    try {
+      const aiResponse = await suggestPlans(profile);
+      // console.log("AI Suggested Plans:", aiResponse);
+      setPlanSuggestion(JSON.parse(aiResponse));
+    } catch (error) {
+      setError("Error fetching AI suggestions: " + error);
+    } finally {
+      setPlanLoading(false);
     }
   }
 
@@ -82,7 +110,8 @@ export default function SuggestPage() {
       <Text style={styles.title}>Try Something Now</Text>
       {error && <Text style={styles.error}>{error}</Text>}
 
-      {currentSuggestion && <ActivitySuggestion data={currentSuggestion} /> }
+      {activitySuggestion && <ActivitySuggestion data={activitySuggestion} /> }
+      {planSuggestion &&  <PlanSuggestion data={planSuggestion} /> }  
 
       <Animated.View style={{ flexDirection: "row", marginTop: 30 }}>
         <AnimatedPressable
@@ -103,7 +132,7 @@ export default function SuggestPage() {
         <AnimatedPressable
           onPressIn={() => (press.value = withSpring(0.96))}
           onPressOut={() => (press.value = withSpring(1))}
-          onPress={handleActivitySuggestion}
+          onPress={handlePlanSuggestion}
           style={[styles.button, animStyle, { flex: 1, marginHorizontal: 8 }]}
           android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
           disabled={activityLoading || planLoading}
