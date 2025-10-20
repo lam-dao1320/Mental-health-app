@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBi_bAM-KOYZQ91hsigoUFmBM_m7rirO38";
+const apiKey = process.env.GEMINI_API_KEY || "";
 
 console.log("Gemini API Key:", process.env.GEMINI_API_KEY);
 
