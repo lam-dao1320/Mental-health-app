@@ -1,10 +1,12 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import QuickActivitySuggestion from "../../components/suggestion/quickActivity";
+import { suggestQuickActivities } from "../../lib/geminiAI_func";
 
 const suggestions = [
   "Take a 10-minute walk outside.",
@@ -27,6 +29,9 @@ const suggestions = [
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export default function SuggestPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [currentSuggestion, setCurrentSuggestion] = useState(
     suggestions[Math.floor(Math.random() * suggestions.length)]
   );
@@ -40,6 +45,21 @@ export default function SuggestPage() {
     setCurrentSuggestion(nextSuggestion);
   };
 
+  const handleAISuggestion = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const aiResponse = await suggestQuickActivities("stressed with assignment deadlines");
+      setData(JSON.parse(aiResponse));
+      console.log("AI Suggested Activities:", aiResponse);
+      // You can update the UI with AI suggestions here
+    } catch (error) {
+      setError("Error fetching AI suggestions: " + error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const press = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: press.value }],
@@ -49,19 +69,28 @@ export default function SuggestPage() {
   return (
     <Animated.View style={styles.container}>
       <Text style={styles.title}>Try Something Now</Text>
+      {error && <Text style={styles.error}>{error}</Text>}
+
+      {data ? <QuickActivitySuggestion data={data} /> : (
 
       <Animated.View style={styles.suggestionBox}>
         <Text style={styles.suggestionText}>{currentSuggestion}</Text>
       </Animated.View>
+      )}
 
       <AnimatedPressable
         onPressIn={() => (press.value = withSpring(0.96))}
         onPressOut={() => (press.value = withSpring(1))}
-        onPress={handleNewSuggestion}
+        onPress={handleAISuggestion}
         style={[styles.button, animStyle]}
         android_ripple={{ color: "rgba(0,0,0,0.08)", borderless: false }}
+        disabled={loading}
       >
-        <Text style={styles.buttonText}>Get New Suggestion</Text>
+        {loading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Get New Suggestion</Text>
+        )}
       </AnimatedPressable>
     </Animated.View>
   );
@@ -121,4 +150,5 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
+  error: { color: "#F49790", textAlign: "center", marginBottom: 12 },
 });

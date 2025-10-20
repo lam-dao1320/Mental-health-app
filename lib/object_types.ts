@@ -24,3 +24,14 @@ export type DiaryRecord = {
   body: string;
   date?: string;
 };
+
+// --- TYPES ---
+export interface Activity {
+  description: string;
+  link: string;
+}
+
+export interface ActivityCategory {
+  name: string;
+  activities: Activity[];
+}
