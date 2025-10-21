@@ -47,7 +47,7 @@ export default function SuggestPage() {
     setError(null);
     setPlanSuggestion(null);
     if (!data) {
-      setError("Must track of your mood");
+      setError("Must keep track of your mood");
       setActivityLoading(false);
       return;
     }
@@ -73,7 +73,7 @@ export default function SuggestPage() {
       return;
     }
     if (!profile.depression || !profile.anxiety || !profile.overall) {
-      setError("Must check-in mental wellness");
+      setError("Must check-in to track their mental wellness");
       setPlanLoading(false);
       return;
     }
