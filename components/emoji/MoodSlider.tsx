@@ -177,11 +177,9 @@ export default function EmojiPage() {
     if (!profile) return;
 
     try {
-      // const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       const cutoff = dateTime.toISOString();
-      console.log("cutoff: ", cutoff);
 
-      // fetch latest mood within 30 mins
+      // fetch latest mood by matching with the date time
       const { data: moods, error: moodErr } = await supabase
         .from("mood_log")
         .select("id, date, diary_id")
@@ -202,7 +200,6 @@ export default function EmojiPage() {
         return;
       }
 
-      // create diary
       // create diary
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")

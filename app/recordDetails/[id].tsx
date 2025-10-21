@@ -32,6 +32,7 @@ export default function CardDetails() {
     const month = dateObj.toLocaleString("en-US", { month: "short" });
     const year = dateObj.getFullYear();
     const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
+    console.log(dateObj.toISOString());
     return `${day} ${month} ${year} (${weekday})`;
   };
 
