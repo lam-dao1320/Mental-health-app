@@ -46,6 +46,11 @@ export default function SuggestPage() {
     setActivityLoading(true);
     setError(null);
     setPlanSuggestion(null);
+    if (!data) {
+      setError("Must track of your mood");
+      setActivityLoading(false);
+      return;
+    }
     try {
       const aiResponse = await suggestActivities(status(data));
       setActivitySuggestion(JSON.parse(aiResponse));
@@ -63,7 +68,7 @@ export default function SuggestPage() {
     setError(null);
     setActivitySuggestion(null);
     if (!profile) {
-      setError("Must sign in access");
+      setError("Must sign in to access");
       setPlanLoading(false);
       return;
     }
