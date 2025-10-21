@@ -54,8 +54,12 @@ export default function CardDetails() {
   return (
     <View style={s.container}>
       <Text style={s.header}>{headerText}</Text>
+      {/* <View style={s.divider} /> */}
       <Text style={s.date}>{dateFormat(diaryDate)}</Text>
-      <Text style={s.body}>{diaryBody}</Text>
+      <View style={s.bodyContainer}>
+        <Text style={s.body}>{diaryBody}</Text>
+      </View>
+      
     </View>
   );
 }
@@ -85,5 +89,16 @@ const s = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
     marginHorizontal: 15,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "#444",
+    marginVertical: 8,
+  },
+  bodyContainer: {
+    borderWidth: 1,
+    borderColor: "#000",
+    borderRadius: 8,
+    paddingVertical: 12,
   },
 });

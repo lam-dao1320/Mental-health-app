@@ -27,6 +27,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import DateTimePickerPage from "../dateTimePicker";
 
 type MoodEntry = {
   value: number;
@@ -74,6 +75,32 @@ export default function EmojiPage() {
 
   const [currentRecordId, setCurrentRecordId] = useState<string | null>(null);
 
+  // At the top inside EmojiPage component
+  const [showPicker, setShowPicker] = useState(false);
+  const [dateTime, setDateTime] = useState(new Date());
+
+  // Format the display date and time
+  const formattedDate = dateTime.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+  const formattedTime = dateTime.toLocaleTimeString(undefined, {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const nowText = `${formattedDate} • ${formattedTime}`;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      setDateTime(new Date()); // Reset to now
+      setContinuousValue(75);
+      setSaved(false);
+      setCurrentRecordId(null);
+      return undefined;
+    }, [])
+  );
+
   // animations
   const scale = useRef(new Animated.Value(1)).current;
   const btnScale = useRef(new Animated.Value(1)).current;
@@ -110,20 +137,6 @@ export default function EmojiPage() {
   };
   const onSlideEnd = () => pulse();
 
-  const nowText = (() => {
-    const d = new Date();
-    const date = d.toLocaleDateString(undefined, {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
-    const time = d.toLocaleTimeString(undefined, {
-      hour: "numeric",
-      minute: "2-digit",
-    });
-    return `${date} • ${time}`;
-  })();
-
   // ✅ Save mood immediately
   const handleSave = async () => {
     animateBtn();
@@ -135,6 +148,7 @@ export default function EmojiPage() {
       const newRecord = {
         user_email: profile.email,
         mood: mood.label,
+        date: dateTime.toISOString(),
       };
 
       const savedMood = await addNewRecord(newRecord);
@@ -163,14 +177,16 @@ export default function EmojiPage() {
     if (!profile) return;
 
     try {
-      const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      // const cutoff = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+      const cutoff = dateTime.toISOString();
+      console.log("cutoff: ", cutoff);
 
       // fetch latest mood within 30 mins
       const { data: moods, error: moodErr } = await supabase
         .from("mood_log")
         .select("id, date, diary_id")
         .eq("user_email", profile.email)
-        .gte("date", cutoff)
+        .eq("date", cutoff)
         .order("date", { ascending: false })
         .limit(1);
 
@@ -193,6 +209,7 @@ export default function EmojiPage() {
         .insert({
           user_email: profile.email,
           body: textDiary,
+          date: moods[0].date,
         })
         .select("id") // ensure ID is returned
         .single();
@@ -469,16 +486,35 @@ export default function EmojiPage() {
               </TouchableWithoutFeedback>
             </Modal>
 
+            {/* Date Time Picker */}
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>{nowText}</Text>
               <Pressable
                 style={styles.pillBtn}
-                onPress={handleHistory}
+                onPress={() => setShowPicker(true)}
                 hitSlop={8}
               >
                 <Text style={styles.pillBtnText}>CHANGE</Text>
               </Pressable>
             </View>
+
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={showPicker}
+              onRequestClose={() => setShowPicker(false)}
+            >
+              <Pressable
+                  style={styles.modalOverlay}
+                  onPress={() => setShowPicker(false)}
+                >
+                  <DateTimePickerPage 
+                    dateTime={dateTime}
+                    setDateTime={(newDate) => setDateTime(newDate)}
+                    onClose={() => setShowPicker(false)}
+                  />
+              </Pressable>
+            </Modal>
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
