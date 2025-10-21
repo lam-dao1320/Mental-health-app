@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/images/mindLog_icon.png",
     "scheme": "mentalhealthapp",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
