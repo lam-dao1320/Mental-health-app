@@ -1,31 +1,41 @@
 import { Activity, ActivityCategory } from "@/lib/object_types";
 import { useState } from "react";
-import { FlatList, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function ActivitySuggestion(data: any) {
-  // console.log("QuickActivitySuggestion received data:", data.data.categories[0]);
-  // selectedId now tracks the name of the expanded category
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<
+    string | null
+  >(null);
 
   const toggleDetails = (categoryName: string) => {
-    // Toggles: If it's the same, set to null (collapse). Otherwise, set the new name (expand).
-    setSelectedCategoryName(prevName => (prevName === categoryName ? null : categoryName));
+    setSelectedCategoryName((prevName) =>
+      prevName === categoryName ? null : categoryName
+    );
   };
-  
-  // Custom component to render the list of activities within a category
+
   const ActivityDetailsList = ({ activities }: { activities: Activity[] }) => (
     <View style={styles.details}>
       {activities.map((activity, index) => (
         <View key={index} style={styles.activityItem}>
-          <Text style={styles.activityDescription}>• {activity.description}</Text>
-          {activity.link &&
-            <TouchableOpacity 
-              onPress={() => Linking.openURL(activity.link)} 
+          <Text style={styles.activityDescription}>
+            • {activity.description}
+          </Text>
+          {activity.link && (
+            <TouchableOpacity
+              onPress={() => Linking.openURL(activity.link)}
               style={styles.linkButton}
+              activeOpacity={0.8}
             >
               <Text style={styles.linkText}>View Resource 🔗</Text>
             </TouchableOpacity>
-          }
+          )}
         </View>
       ))}
     </View>
@@ -33,22 +43,17 @@ export default function ActivitySuggestion(data: any) {
 
   const renderCategory = ({ item }: { item: ActivityCategory }) => {
     const isSelected = selectedCategoryName === item.name;
-
     return (
-      <View style={styles.itemContainer}>
-        <TouchableOpacity 
-          onPress={() => toggleDetails(item.name)} 
-          style={styles.button}
+      <View style={[styles.card, isSelected && styles.cardExpanded]}>
+        <TouchableOpacity
+          onPress={() => toggleDetails(item.name)}
+          style={styles.cardHeader}
+          activeOpacity={0.8}
         >
-          <Text style={styles.title}>{item.name}</Text>
-          {/* Visual Indicator */}
-          <Text style={styles.indicator}>{isSelected ? '▲' : '▼'}</Text>
+          <Text style={styles.categoryName}>{item.name}</Text>
+          <Text style={styles.indicator}>{isSelected ? "▲" : "▼"}</Text>
         </TouchableOpacity>
-        
-        {/* Conditional rendering of the activities list */}
-        {isSelected && (
-          <ActivityDetailsList activities={item.activities} />
-        )}
+        {isSelected && <ActivityDetailsList activities={item.activities} />}
       </View>
     );
   };
@@ -61,76 +66,86 @@ export default function ActivitySuggestion(data: any) {
         keyExtractor={(item) => item.name}
         renderItem={renderCategory}
         extraData={selectedCategoryName}
+        scrollEnabled={false}
       />
     </View>
   );
-};
+}
 
 // --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f5f5',
-    width: 400,
+    width: "100%",
+    backgroundColor: "#F9F9FB",
+    paddingVertical: 20,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1D1D1F",
+    marginBottom: 18,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
   },
-  itemContainer: {
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 3,
-    shadowColor: '#000',
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    marginBottom: 14,
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  button: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
+  cardExpanded: {
+    backgroundColor: "#FDFCF7",
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#007AFF', // Theme color for category titles
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#007AFF",
+    fontFamily: "Noto Sans HK",
   },
   indicator: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   details: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: '#fafafa',
+    borderTopColor: "#EEE",
+    backgroundColor: "#FCFCFC",
+    borderBottomLeftRadius: 18,
+    borderBottomRightRadius: 18,
   },
   activityItem: {
-    marginBottom: 10,
+    marginTop: 8,
   },
   activityDescription: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 5,
+    color: "#444",
     lineHeight: 20,
+    fontFamily: "Noto Sans HK",
   },
   linkButton: {
-    alignSelf: 'flex-start',
-    marginTop: 2,
+    alignSelf: "flex-start",
+    marginTop: 4,
   },
   linkText: {
     fontSize: 14,
-    color: '#34A853', // Green for links/resources
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+    color: "#34A853",
+    fontWeight: "500",
+    textDecorationLine: "underline",
+    fontFamily: "Noto Sans HK",
   },
 });
