@@ -6,13 +6,12 @@ import { useCallback, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 
 const GRADIENTS: [string, string][] = [
-  ["#FDE2DF", "#F8CFCF"], // angry
-  ["#EAF6F2", "#DDEEE9"], // sad
-  ["#F9F9FB", "#F9F9FB"], // low
-  ["#FBECD7", "#FAD7D0"], // okay
-  ["#FCE1DC", "#FCE1DC"], // great
+  ["#FBEAEA", "#F9DADA"], // angry – rose mist
+  ["#E3ECFA", "#D8E5F4"], // sad – baby sky
+  ["#F1E6F6", "#E7DDF1"], // low – pale lilac
+  ["#FFFBE2", "#FFF4CC"], // okay – soft cream
+  ["#E8FAEC", "#DFF8E4"], // great – mint cloud
 ];
-
 // store keys in lowercase so we don’t have case mismatch
 const EMOJI: Record<string, string> = {
   angry: "😡",
@@ -36,7 +35,7 @@ export default function HistoryPage() {
   const [records, setRecords] = useState<any[]>([]);
   const { profile } = useUserContext();
 
-  console.log("User profile", profile);
+  // console.log("User profile", profile);
 
   // load data whenever page is focused
   useFocusEffect(
@@ -110,7 +109,10 @@ export default function HistoryPage() {
             <Card
               record={{
                 id: item.id,
-                moodText: `Mood: ${item.mood} ${emoji}`,
+                moodText: `Mood: ${
+                  item.mood?.charAt(0).toUpperCase() +
+                  item.mood?.slice(1).toLowerCase()
+                } ${emoji}`,
                 dateText,
                 bodyText,
               }}
