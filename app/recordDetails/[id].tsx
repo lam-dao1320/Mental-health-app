@@ -6,7 +6,19 @@ import { getRecordsByEmail } from "@/lib/mood_crud";
 import { supabase } from "@/lib/supabase";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native";
+import {
+  Alert,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 
 const emojiForMood = (text: string) => {
   const t = text.toLowerCase();
@@ -25,8 +37,19 @@ export default function CardDetails() {
   const [showPicker, setShowPicker] = useState(false);
   const [dateTime, setDateTime] = useState(new Date());
 
-  const [diaryRecord, setDiaryRecords] = useState({id: '', date: dateTime, user_email:  profile?.email, body: text})
-  const [moodRecord, setMoodRecord] = useState({id: '', date: dateTime, user_email: profile?.email, mood: '', diary_id: diaryRecord.id});
+  const [diaryRecord, setDiaryRecords] = useState({
+    id: "",
+    date: dateTime,
+    user_email: profile?.email,
+    body: text,
+  });
+  const [moodRecord, setMoodRecord] = useState({
+    id: "",
+    date: dateTime,
+    user_email: profile?.email,
+    mood: "",
+    diary_id: diaryRecord.id,
+  });
 
   const MAX_LEN = 500;
   const MIN_LEN = 0;
@@ -69,7 +92,6 @@ export default function CardDetails() {
     [id, records]
   );
 
-
   const dateFormat = (date?: Date | null) => {
     if (!date) return "";
     const dateObj = new Date(date);
@@ -91,8 +113,8 @@ export default function CardDetails() {
   }
 
   const headerText = record.mood
-  ? record.mood + emojiForMood(record.mood)
-  : "No mood selected 😶";
+    ? record.mood + emojiForMood(record.mood)
+    : "No mood selected 😶";
 
   // Use diary body if available, else fallback
   useEffect(() => {
@@ -107,12 +129,23 @@ export default function CardDetails() {
         setDateTime(new Date()); // fallback to today
       }
 
-      setDiaryRecords({id: record.diary?.id, date: record.date, duser_email: profile?.email, body: record.diary?.body});
-      setMoodRecord({id: record.id, date: dateTime, user_email: profile?.email, mood: record.mood, diary_id: record.diary?.id});
+      setDiaryRecords({
+        id: record.diary?.id,
+        date: record.date,
+        duser_email: profile?.email,
+        body: record.diary?.body,
+      });
+      setMoodRecord({
+        id: record.id,
+        date: dateTime,
+        user_email: profile?.email,
+        mood: record.mood,
+        diary_id: record.diary?.id,
+      });
     }
   }, [record]);
 
- // ✅ Save or update record safely (supports null diary)
+  // ✅ Save or update record safely (supports null diary)
   const onSave = async () => {
     if (!canSave) return;
     if (!profile || !record) return;
@@ -132,7 +165,7 @@ export default function CardDetails() {
           .eq("id", record.diary.id);
 
         if (diaryErr) throw diaryErr;
-      } 
+      }
       // --- 2️⃣ If no diary exists but text is present, create one ---
       else if (text.trim().length > 0) {
         const { data: newDiary, error: newDiaryErr } = await supabase
@@ -178,8 +211,6 @@ export default function CardDetails() {
     }
   };
 
-
-
   // ✅ Delete function that safely handles null diary
   const onDelete = async () => {
     if (!record) return;
@@ -222,16 +253,15 @@ export default function CardDetails() {
     );
   };
 
-
-
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: "#F9F9FB" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss?.()} accessible={false}>
-
+      <TouchableWithoutFeedback
+        onPress={() => Keyboard.dismiss?.()}
+        accessible={false}
+      >
         <View style={s.container}>
           <Text style={s.header}>Mood: {headerText}</Text>
 
@@ -243,9 +273,7 @@ export default function CardDetails() {
               onPress={() => setShowPicker(true)}
               hitSlop={8}
             >
-              <Text 
-              style={s.pillBtnText}
-              >CHANGE</Text>
+              <Text style={s.pillBtnText}>CHANGE</Text>
             </Pressable>
 
             <Modal
@@ -255,18 +283,17 @@ export default function CardDetails() {
               onRequestClose={() => setShowPicker(false)}
             >
               <Pressable
-                  style={s.modalOverlay}
-                  onPress={() => setShowPicker(false)}
-                >
-                  <DateTimePickerPage 
-                    dateTime={dateTime}
-                    setDateTime={(newDate) => setDateTime(newDate)}
-                    onClose={() => setShowPicker(false)}
-                  />
+                style={s.modalOverlay}
+                onPress={() => setShowPicker(false)}
+              >
+                <DateTimePickerPage
+                  dateTime={dateTime}
+                  setDateTime={(newDate) => setDateTime(newDate)}
+                  onClose={() => setShowPicker(false)}
+                />
               </Pressable>
             </Modal>
           </View>
-         
 
           {/* Text */}
           <View style={s.bodyContainer}>
@@ -281,20 +308,20 @@ export default function CardDetails() {
               textAlignVertical="top"
               autoCorrect
               autoCapitalize="sentences"
-              returnKeyType="default"/>
-              <View style={s.helperRow}>
-                <Text
-                  style={[
-                    s.counter,
-                    remaining !== undefined && remaining <= 40
-                      ? s.counterLow
-                      : null,
-                  ]}
-                >
-                  {text.length}/{MAX_LEN}
-                </Text>
-              </View>
-              
+              returnKeyType="default"
+            />
+            <View style={s.helperRow}>
+              <Text
+                style={[
+                  s.counter,
+                  remaining !== undefined && remaining <= 40
+                    ? s.counterLow
+                    : null,
+                ]}
+              >
+                {text.length}/{MAX_LEN}
+              </Text>
+            </View>
           </View>
 
           <View style={s.actions}>
@@ -333,9 +360,7 @@ export default function CardDetails() {
               <Text style={s.btnDangerText}>Delete</Text>
             </Pressable>
           </View>
-          
         </View>
-
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
@@ -375,7 +400,7 @@ const s = StyleSheet.create({
     padding: 12,
     flexDirection: "column",
     alignSelf: "stretch",
-    height: '40%',
+    height: "40%",
     paddingVertical: 12,
   },
   dateTimeContainer: {
@@ -401,9 +426,9 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(82, 89, 91, 0.28)",
   },
-  pillBtnText: { 
-    color: "#000", 
-    fontWeight: "900", 
+  pillBtnText: {
+    color: "#000",
+    fontWeight: "900",
     letterSpacing: 1,
     margin: 10,
   },
@@ -444,8 +469,8 @@ const s = StyleSheet.create({
     fontWeight: "700",
     fontFamily: "Noto Sans HK",
   },
-  btnDanger: { 
-    backgroundColor: "#F87171", 
+  btnDanger: {
+    backgroundColor: "#F87171",
     borderColor: "#F87171",
   },
   btnDangerText: {
