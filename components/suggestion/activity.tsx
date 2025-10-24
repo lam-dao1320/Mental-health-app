@@ -1,38 +1,19 @@
-import { Activity, ActivityCategory } from "@/lib/object_types";
+import { Activity } from "@/lib/object_types";
 import { useState } from "react";
 import { FlatList, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function ActivitySuggestion(data: any) {
-  // console.log("QuickActivitySuggestion received data:", data.data.categories[0]);
+  console.log("QuickActivitySuggestion received data:", data.data);
   // selectedId now tracks the name of the expanded category
-  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
+  const [selectedActivityName, setSelectedActivityName] = useState<string | null>(null);
 
-  const toggleDetails = (categoryName: string) => {
+  const toggleDetails = (activityName: string) => {
     // Toggles: If it's the same, set to null (collapse). Otherwise, set the new name (expand).
-    setSelectedCategoryName(prevName => (prevName === categoryName ? null : categoryName));
+    setSelectedActivityName(prevName => (prevName === activityName ? null : activityName));
   };
-  
-  // Custom component to render the list of activities within a category
-  const ActivityDetailsList = ({ activities }: { activities: Activity[] }) => (
-    <View style={styles.details}>
-      {activities.map((activity, index) => (
-        <View key={index} style={styles.activityItem}>
-          <Text style={styles.activityDescription}>• {activity.description}</Text>
-          {activity.link &&
-            <TouchableOpacity 
-              onPress={() => Linking.openURL(activity.link)} 
-              style={styles.linkButton}
-            >
-              <Text style={styles.linkText}>View Resource 🔗</Text>
-            </TouchableOpacity>
-          }
-        </View>
-      ))}
-    </View>
-  );
 
-  const renderCategory = ({ item }: { item: ActivityCategory }) => {
-    const isSelected = selectedCategoryName === item.name;
+  const renderActivityItem = ({ item }: { item: Activity }) => {
+    const isSelected = selectedActivityName === item.name;
 
     return (
       <View style={styles.itemContainer}>
@@ -40,14 +21,26 @@ export default function ActivitySuggestion(data: any) {
           onPress={() => toggleDetails(item.name)} 
           style={styles.button}
         >
-          <Text style={styles.title}>{item.name}</Text>
+          <View style={{width:300}}>
+            <Text style={styles.title}>{item.name}</Text>
+          </View>
           {/* Visual Indicator */}
           <Text style={styles.indicator}>{isSelected ? '▲' : '▼'}</Text>
         </TouchableOpacity>
         
         {/* Conditional rendering of the activities list */}
         {isSelected && (
-          <ActivityDetailsList activities={item.activities} />
+          <View style={styles.details}>
+            <Text style={styles.activityDescription}>• {item.description}</Text>
+            {item.link &&
+              <TouchableOpacity 
+                onPress={() => Linking.openURL(item.link)} 
+                style={styles.linkButton}
+              >
+                <Text style={styles.linkText}>View Resource 🔗</Text>
+              </TouchableOpacity>
+            }
+          </View>
         )}
       </View>
     );
@@ -56,11 +49,12 @@ export default function ActivitySuggestion(data: any) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>AI Suggested Stress Activities 🧘</Text>
+      <Text style={styles.smallHeader}>{data.data.chosen_category}</Text>
       <FlatList
-        data={data.data.categories}
+        data={data.data.activities}
         keyExtractor={(item) => item.name}
-        renderItem={renderCategory}
-        extraData={selectedCategoryName}
+        renderItem={renderActivityItem}
+        extraData={selectedActivityName}
       />
     </View>
   );
@@ -77,6 +71,12 @@ const styles = StyleSheet.create({
   },
   header: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  smallHeader: {
+    fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 20,
     color: '#333',
@@ -110,12 +110,10 @@ const styles = StyleSheet.create({
   details: {
     paddingHorizontal: 15,
     paddingVertical: 10,
-    borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fafafa',
-  },
-  activityItem: {
-    marginBottom: 10,
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   activityDescription: {
     fontSize: 14,

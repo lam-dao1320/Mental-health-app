@@ -9,40 +9,34 @@ export const planAI = new GoogleGenAI({apiKey: planApiKey});
 export const activitiesSchema = {
   type: Type.OBJECT,
   properties: {
-    categories: {
+    chosen_category: {
+      type: Type.STRING,
+      description: 'The single most suitable stress-relief category based on the user status (e.g., "Mindful Breathing", "Gentle Desk Stretches").',
+    },
+    activities: {
       type: Type.ARRAY,
-      description: 'A list of different stress relief categories.',
+      description: 'A list of 5 specific activities within the chosen category.',
       items: {
         type: Type.OBJECT,
         properties: {
           name: {
             type: Type.STRING,
-            description: 'The name of the activity category (e.g., "Mindfulness", "Movement").',
+            description: 'A concise name for the specific activity (e.g., "Box Breathing", "Shoulder Rolls").',
           },
-          activities: {
-            type: Type.ARRAY,
-            description: 'A list of 3 specific activities within this category.',
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                description: {
-                  type: Type.STRING,
-                  description: 'A brief instruction for the activity.',
-                },
-                link: {
-                  type: Type.STRING,
-                  description: 'A suggested URL (YouTube, article, or music) related to the activity.',
-                },
-              },
-              required: ['description', 'link'],
-            },
+          description: {
+            type: Type.STRING,
+            description: 'A brief instruction for the activity.',
+          },
+          link: {
+            type: Type.STRING,
+            description: 'A suggested URL (YouTube, article, or music) related to the activity.',
           },
         },
-        required: ['name', 'activities'],
+        required: ['name', 'description', 'link'],
       },
     },
   },
-  required: ['categories'],
+  required: ['chosen_category', 'activities'],
 };
 
 export const plansSchema = {

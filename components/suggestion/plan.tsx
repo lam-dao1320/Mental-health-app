@@ -98,8 +98,8 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   details: {
-    padding: 15,
-    paddingTop: 5,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fafafa',

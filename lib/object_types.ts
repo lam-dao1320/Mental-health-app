@@ -29,12 +29,12 @@ export type DiaryRecord = {
 
 // --- TYPES ---
 export interface Activity {
+  name: string;
   description: string;
   link: string;
 }
 
 export interface ActivityCategory {
-  name: string;
   activities: Activity[];
 }
 

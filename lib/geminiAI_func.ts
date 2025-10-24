@@ -3,9 +3,10 @@ import { activitiesSchema, activityAI, planAI, plansSchema } from "./geminiAI";
 export async function suggestActivities(status: string) {
     // Construct the prompt for the AI model
     const prompt = 
-        `${status}. You are an AI Wellness Coach.
-        Your goal is to suggest 5 distinct categories of stress-relief activities suitable for someone who has 30 minutes, is at their desk, and needs a non-disruptive activity.
-        For each category, provide 3 specific activities with instructions and a helpful resource link.`;
+       `${status}. You are an AI Wellness Coach.
+        Your goal is to first **select the single most suitable category** of stress-relief activity for the user's current status, given they have 30 minutes, are at their desk, and needs a non-disruptive activity.
+        Then, list 5 specific activities that fit this single chosen category. 
+        For each activity, provide its **name**, brief instructions, and a helpful resource link.`;
 
     console.log("AI Activity Suggestion Prompt:\n", prompt);
 
