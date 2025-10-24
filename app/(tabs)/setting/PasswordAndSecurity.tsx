@@ -7,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
   TextInput,
   View,
@@ -106,7 +105,7 @@ export default function PasswordAndSecurityScreen() {
       </View>
 
       {/* Two-factor auth mock */}
-      <View style={[styles.card, styles.shadow, { width: "100%", maxWidth }]}>
+      {/* <View style={[styles.card, styles.shadow, { width: "100%", maxWidth }]}>
         <View style={styles.rowBetween}>
           <View style={{ flex: 1, paddingRight: 10 }}>
             <Text style={styles.sectionTitle}>Two‑factor authentication</Text>
@@ -144,7 +143,7 @@ export default function PasswordAndSecurityScreen() {
             <Text style={styles.ghostText}>Recovery codes</Text>
           </Pressable>
         </View>
-      </View>
+      </View> */}
 
       <Pressable
         style={({ pressed }) => [
