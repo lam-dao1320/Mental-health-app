@@ -54,6 +54,13 @@ export default function SettingsScreen() {
             label="Personal info"
             onPress={() => router.push("/setting/PersonalInfo")}
           />
+          <SectionRow
+            chipBg="#FFF7E9"
+            iconColor={Colors.peach}
+            icon="trophy"
+            label="My Badges"
+            onPress={() => router.push("/setting/Badges")}
+          />
         </View>
 
         <View style={[styles.card, styles.shadow]}>
