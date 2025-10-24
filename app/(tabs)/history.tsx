@@ -3,7 +3,7 @@ import { useUserContext } from "@/context/authContext";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from "react-native";
 
 const GRADIENTS: [string, string][] = [
   ["#FBEAEA", "#F9DADA"], // angry – rose mist
@@ -34,6 +34,7 @@ const moodToIndex = (m: string) => {
 export default function HistoryPage() {
   const [records, setRecords] = useState<any[]>([]);
   const { profile } = useUserContext();
+  const [query, setQuery] = useState("");
 
   // console.log("User profile", profile);
 
@@ -87,12 +88,40 @@ export default function HistoryPage() {
     return `${day} ${month} ${year} (${weekday})`;
   };
 
+  const filteredRecord = records.filter((record) => {
+    if (!query.trim()) return true; // show all when search box empty
+
+    const q = query.toLowerCase();
+    const moodMatch = record.mood?.toLowerCase().includes(q);
+    const diaryMatch = record.diary?.body?.toLowerCase().includes(q);
+
+    return moodMatch || diaryMatch;
+  });
+
+
   return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: "#F9F9FB" }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss?.()} accessible={false}>
     <View style={s.container}>
       <Text style={s.header}>My Mood Log</Text>
 
+      <Text style={s.searchText}>Search</Text>
+      <TextInput 
+      style={s.search}
+      value={query}
+      onChangeText={(text) => setQuery(text)}
+      placeholder="Mood | Text | Key words"
+      placeholderTextColor="rgba(0,0,0,0.35)"
+      textAlignVertical="top"
+      autoCorrect
+      autoCapitalize="sentences"
+      returnKeyType="default"/>
+
       <FlatList
-        data={records}
+        data={filteredRecord}
         keyExtractor={(item, index) => String(item.id ?? index)}
         contentContainerStyle={{ paddingBottom: 24 }}
         renderItem={({ item }) => {
@@ -127,6 +156,8 @@ export default function HistoryPage() {
         }
       />
     </View>
+    </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -144,4 +175,23 @@ const s = StyleSheet.create({
     marginVertical: 40,
     marginHorizontal: 15,
   },
+  searchText: {
+    color: "black",
+    fontFamily: "Noto Sans HK",
+    fontWeight: "bold",
+    fontSize: 25,
+    marginBottom: 10,
+    marginHorizontal: 15,
+  },
+  search: {
+    color: "#444",
+    fontSize: 16,
+    lineHeight: 22,
+    marginHorizontal: 15,
+    borderColor: 'black',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 10,
+  }
 });
