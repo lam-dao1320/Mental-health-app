@@ -1,4 +1,4 @@
-import { Activity, ActivityCategory } from "@/lib/object_types";
+import { Activity } from "@/lib/object_types";
 import { useState } from "react";
 import {
   FlatList,
@@ -10,39 +10,18 @@ import {
 } from "react-native";
 
 export default function ActivitySuggestion(data: any) {
-  const [selectedCategoryName, setSelectedCategoryName] = useState<
-    string | null
-  >(null);
+  console.log("QuickActivitySuggestion received data:", data.data);
+  // selectedId now tracks the name of the expanded category
+  const [selectedActivityName, setSelectedActivityName] = useState<string | null>(null);
 
-  const toggleDetails = (categoryName: string) => {
-    setSelectedCategoryName((prevName) =>
-      prevName === categoryName ? null : categoryName
-    );
+  const toggleDetails = (activityName: string) => {
+    // Toggles: If it's the same, set to null (collapse). Otherwise, set the new name (expand).
+    setSelectedActivityName(prevName => (prevName === activityName ? null : activityName));
   };
 
-  const ActivityDetailsList = ({ activities }: { activities: Activity[] }) => (
-    <View style={styles.details}>
-      {activities.map((activity, index) => (
-        <View key={index} style={styles.activityItem}>
-          <Text style={styles.activityDescription}>
-            • {activity.description}
-          </Text>
-          {activity.link && (
-            <TouchableOpacity
-              onPress={() => Linking.openURL(activity.link)}
-              style={styles.linkButton}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.linkText}>View Resource 🔗</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      ))}
-    </View>
-  );
+  const renderActivityItem = ({ item }: { item: Activity }) => {
+    const isSelected = selectedActivityName === item.name;
 
-  const renderCategory = ({ item }: { item: ActivityCategory }) => {
-    const isSelected = selectedCategoryName === item.name;
     return (
       <View style={[styles.card, isSelected && styles.cardExpanded]}>
         <TouchableOpacity
@@ -50,10 +29,27 @@ export default function ActivitySuggestion(data: any) {
           style={styles.cardHeader}
           activeOpacity={0.8}
         >
-          <Text style={styles.categoryName}>{item.name}</Text>
-          <Text style={styles.indicator}>{isSelected ? "▲" : "▼"}</Text>
+          <View style={{width:300}}>
+            <Text style={styles.title}>{item.name}</Text>
+          </View>
+          {/* Visual Indicator */}
+          <Text style={styles.indicator}>{isSelected ? '▲' : '▼'}</Text>
         </TouchableOpacity>
-        {isSelected && <ActivityDetailsList activities={item.activities} />}
+        
+        {/* Conditional rendering of the activities list */}
+        {isSelected && (
+          <View style={styles.details}>
+            <Text style={styles.activityDescription}>• {item.description}</Text>
+            {item.link &&
+              <TouchableOpacity 
+                onPress={() => Linking.openURL(item.link)} 
+                style={styles.linkButton}
+              >
+                <Text style={styles.linkText}>View Resource 🔗</Text>
+              </TouchableOpacity>
+            }
+          </View>
+        )}
       </View>
     );
   };
@@ -61,12 +57,12 @@ export default function ActivitySuggestion(data: any) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>AI Suggested Stress Activities 🧘</Text>
+      <Text style={styles.smallHeader}>{data.data.chosen_category}</Text>
       <FlatList
-        data={data.data.categories}
+        data={data.data.activities}
         keyExtractor={(item) => item.name}
-        renderItem={renderCategory}
-        extraData={selectedCategoryName}
-        scrollEnabled={false}
+        renderItem={renderActivityItem}
+        extraData={selectedActivityName}
       />
     </View>
   );
@@ -88,11 +84,18 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    marginBottom: 14,
-    shadowColor: "#000",
+  smallHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  itemContainer: {
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 3,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 4,
@@ -120,16 +123,12 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   details: {
-    paddingHorizontal: 18,
-    paddingBottom: 14,
-    borderTopWidth: 1,
-    borderTopColor: "#EEE",
-    backgroundColor: "#FCFCFC",
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
-  },
-  activityItem: {
-    marginTop: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    borderTopColor: '#eee',
+    backgroundColor: '#fafafa',
+    borderBottomLeftRadius: 8,
+    borderBottomRightRadius: 8,
   },
   activityDescription: {
     fontSize: 14,
