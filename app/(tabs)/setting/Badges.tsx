@@ -133,17 +133,25 @@ export default function BadgesPage() {
     console.log(`🎉 Badge earned: ${type} - ${level}`);
   }
 
-  type BadgeLevel = "beginner" | "mid" | "advanced";
+    type BadgeType = "mood" | "questionnaire";
+    type BadgeLevel = "beginner" | "mid" | "advanced";
 
-  function BadgeIcon({ level }: { level: BadgeLevel }) {
-    const icons = {
-      beginner: require("@/assets/images/mindLog_icon.png"),
-      mid: require("@/assets/images/mindLog_icon.png"),
-      advanced: require("@/assets/images/mindLog_icon.png"),
+    function BadgeIcon({ type, level }: { type: BadgeType; level: BadgeLevel }) {
+    const icons: Record<BadgeType, Record<BadgeLevel, any>> = {
+        mood: {
+        beginner: require("@/assets/images/mood/beginner.png"),
+        mid: require("@/assets/images/mindLog_icon.png"),
+        advanced: require("@/assets/images/mindLog_icon.png"),
+        },
+        questionnaire: {
+        beginner: require("@/assets/images/mindLog_icon.png"),
+        mid: require("@/assets/images/mindLog_icon.png"),
+        advanced: require("@/assets/images/mindLog_icon.png"),
+        },
     };
 
-    return <Image source={icons[level]} style={{ width: 60, height: 60 }} />;
-  }
+    return <Image source={icons[type][level]} style={{ width: 60, height: 60 }} />;
+    }
 
   // ✅ Loading state
   if (loading) {
@@ -158,20 +166,20 @@ export default function BadgesPage() {
   // ✅ Render the earned badges
   return (
     <FlatList
-      data={badges}
-      keyExtractor={(item) => item.id}
-      contentContainerStyle={{ padding: 20 }}
-      ListEmptyComponent={
-        <Text style={{ textAlign: "center", marginTop: 40 }}>
-          No badges earned yet
-        </Text>
-      }
-      renderItem={({ item }) => (
+        data={badges}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 20 }}
+        ListEmptyComponent={
+            <Text style={{ textAlign: "center", marginTop: 40 }}>
+            No badges earned yet
+            </Text>
+        }
+        renderItem={({ item }) => (
         <View style={{ alignItems: "center", margin: 10 }}>
-          <BadgeIcon level={item.level} />
-          <Text>{item.badge_type} – {item.level}</Text>
+            <BadgeIcon type={item.badge_type} level={item.level} />
+            <Text>{item.badge_type} – {item.level}</Text>
         </View>
-      )}
+        )}
     />
   );
 }
