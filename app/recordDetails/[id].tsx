@@ -230,7 +230,7 @@ export default function CardDetails() {
       style={{ flex: 1, backgroundColor: "#F9F9FB" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+      <TouchableWithoutFeedback onPress={() => Keyboard.dismiss?.()} accessible={false}>
 
         <View style={s.container}>
           <Text style={s.header}>Mood: {headerText}</Text>
