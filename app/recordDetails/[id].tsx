@@ -1,14 +1,14 @@
-"use client";
+// "use client";
 
 import DateTimePickerPage from "@/components/dateTimePicker";
 import { useUserContext } from "@/context/authContext";
 import { getRecordsByEmail } from "@/lib/mood_crud";
 import { supabase } from "@/lib/supabase";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -17,7 +17,7 @@ import {
   Text,
   TextInput,
   TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 
 const emojiForMood = (text: string) => {
@@ -202,9 +202,11 @@ export default function CardDetails() {
       if (moodErr) throw moodErr;
 
       Alert.alert("Success", "Diary and mood log updated.");
-      Keyboard.dismiss();
+      setShowPicker(false);
 
       await fetchDiary(); // 🔄 refresh
+      // Safe navigate
+      router.back();
     } catch (err: any) {
       console.error("Update failed:", err);
       Alert.alert("Error", err.message || "Failed to update record.");
@@ -259,7 +261,7 @@ export default function CardDetails() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <TouchableWithoutFeedback
-        onPress={() => Keyboard.dismiss?.()}
+        onPress={() => setShowPicker(false)}
         accessible={false}
       >
         <View style={s.container}>
@@ -276,23 +278,39 @@ export default function CardDetails() {
               <Text style={s.pillBtnText}>CHANGE</Text>
             </Pressable>
 
-            <Modal
-              animationType="fade"
-              transparent={true}
-              visible={showPicker}
-              onRequestClose={() => setShowPicker(false)}
-            >
-              <Pressable
-                style={s.modalOverlay}
-                onPress={() => setShowPicker(false)}
-              >
-                <DateTimePickerPage
-                  dateTime={dateTime}
-                  setDateTime={(newDate) => setDateTime(newDate)}
-                  onClose={() => setShowPicker(false)}
+            {/* iOS: use Modal */}
+              {Platform.OS === "ios" && showPicker && (
+                <Modal
+                  animationType="fade"
+                  transparent={true}
+                  visible={showPicker}
+                  onRequestClose={() => setShowPicker(false)}
+                >
+                  <Pressable
+                    style={s.modalOverlay}
+                    onPress={() => setShowPicker(false)}
+                  >
+                    <DateTimePickerPage
+                      dateTime={dateTime}
+                      setDateTime={(newDate) => setDateTime(newDate)}
+                      onClose={() => setShowPicker(false)}
+                    />
+                  </Pressable>
+                </Modal>
+              )}
+
+              {/* Android: render picker directly */}
+              {Platform.OS === "android" && showPicker && (
+                <DateTimePicker
+                  value={dateTime}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowPicker(false); // closes picker automatically
+                    if (selectedDate) setDateTime(selectedDate);
+                  }}
                 />
-              </Pressable>
-            </Modal>
+              )}
           </View>
 
           {/* Text */}
@@ -329,7 +347,7 @@ export default function CardDetails() {
               style={[s.btn, s.btnGhost]}
               onPress={() => {
                 setText("");
-                Keyboard.dismiss();
+                setShowPicker(false);
               }}
               hitSlop={8}
             >
