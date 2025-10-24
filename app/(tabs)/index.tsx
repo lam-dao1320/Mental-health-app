@@ -41,7 +41,7 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={goDiary}>
+          {/* <TouchableOpacity style={styles.actionCard} onPress={goDiary}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#FFF3F1" }]}
             >
@@ -51,7 +51,7 @@ export default function HomeScreen() {
             <Text style={styles.actionDescription}>
               Capture a short note or reflection
             </Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
 
           <TouchableOpacity style={styles.actionCard} onPress={goHistory}>
             <View
@@ -64,6 +64,7 @@ export default function HomeScreen() {
               Browse past entries and moods
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#eaedf6ff" }]}
@@ -73,6 +74,21 @@ export default function HomeScreen() {
             <Text style={styles.actionTitle}>Mental check‑in</Text>
             <Text style={styles.actionDescription}>
               Check in again if your mood changes
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionCard}
+            onPress={() => router.push("/suggest")}
+          >
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#E9F0FF" }]}
+            >
+              <Ionicons name="sparkles" size={40} color="#84B4FF" />
+            </View>
+            <Text style={styles.actionTitle}>AI Suggestions</Text>
+            <Text style={styles.actionDescription}>
+              Get music, activities, and plans based on your mood
             </Text>
           </TouchableOpacity>
         </View>
@@ -126,8 +142,8 @@ const styles = StyleSheet.create({
   // Header
   header: {
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 30,
+    paddingTop: 30,
+    paddingBottom: 2,
     paddingHorizontal: 20,
   },
   logo: {
@@ -154,7 +170,7 @@ const styles = StyleSheet.create({
   // Actions
   actionsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   actionCard: {
     backgroundColor: "#FFFFFF",
@@ -208,15 +224,11 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FCFAE1",
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 2,
+    backgroundColor: "transparent", // remove boxy look
+    paddingVertical: 8,
+    marginBottom: 3,
+    shadowColor: "transparent", // remove shadow
+    elevation: 0,
   },
   featureText: {
     fontSize: 16,
