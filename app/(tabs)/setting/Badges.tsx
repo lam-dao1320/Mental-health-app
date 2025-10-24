@@ -46,22 +46,6 @@ export default function BadgesPage() {
   type BadgeType = "mood" | "questionnaire";
   type BadgeLevel = "beginner" | "mid" | "advanced";
 
-  // function BadgeIcon({ type, level }: { type: BadgeType; level: BadgeLevel }) {
-  //   const icons: Record<BadgeType, Record<BadgeLevel, any>> = {
-  //     mood: {
-  //       beginner: require("@/assets/images/mood/beginner.png"),
-  //       mid: require("@/assets/images/mindLog_icon.png"),
-  //       advanced: require("@/assets/images/mindLog_icon.png"),
-  //     },
-  //     questionnaire: {
-  //       beginner: require("@/assets/images/mindLog_icon.png"),
-  //       mid: require("@/assets/images/mindLog_icon.png"),
-  //       advanced: require("@/assets/images/mindLog_icon.png"),
-  //     },
-  //   };
-  //   return <Image source={icons[type][level]} style={{ width: 60, height: 60 }} />;
-  // }
-
   // 🆕 Moved icons into one centralized object
   const badgeIcons: Record<BadgeType, Record<BadgeLevel, any>> = {
     mood: {
