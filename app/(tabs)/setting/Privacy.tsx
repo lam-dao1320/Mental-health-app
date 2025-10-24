@@ -72,16 +72,16 @@ export default function PrivacyScreen() {
           iosBg={GRAY}
         />
 
-        <Divider />
+        {/* <Divider /> */}
 
-        <Row
+        {/* <Row
           title="Analytics"
           subtitle="Collect aggregate analytics about feature usage."
           value={analytics}
           onChange={setAnalytics}
           track={{ false: GRAY, true: MINT_MED }}
           iosBg={GRAY}
-        />
+        /> */}
       </View>
 
       {/* Location */}

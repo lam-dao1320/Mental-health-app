@@ -19,26 +19,26 @@ export default function RootLayout() {
 
   return (
     <UserContextProvider>
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <SafeAreaView
-        style={{ flex: 1, backgroundColor: "transparent" }}
-        edges={["top"]}
-      >
-        <Stack
-          screenOptions={{
-            headerShown: false,
-          }}
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <SafeAreaView
+          style={{ flex: 1, backgroundColor: "transparent" }}
+          edges={["top"]}
         >
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen
-            name="modal"
-            options={{ presentation: "modal", title: "Modal" }}
-          />
-          <Stack.Screen name="sign_in" options={{ headerShown: false }} />
-        </Stack>
-        {/* <StatusBar style="auto" /> */}
-      </SafeAreaView>
-    </ThemeProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="modal"
+              options={{ presentation: "modal", title: "Modal" }}
+            />
+            <Stack.Screen name="sign_in" options={{ headerShown: false }} />
+          </Stack>
+          {/* <StatusBar style="auto" /> */}
+        </SafeAreaView>
+      </ThemeProvider>
     </UserContextProvider>
   );
 }
