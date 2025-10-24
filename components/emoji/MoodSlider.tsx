@@ -4,6 +4,7 @@ import { useUserContext } from "@/context/authContext";
 import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
 import { supabase } from "@/lib/supabase";
 import { AntDesign } from "@expo/vector-icons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
 import { useFocusEffect } from "@react-navigation/native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -237,7 +238,7 @@ export default function EmojiPage() {
       );
       console.error(err);
     }
-    Keyboard.dismiss();
+    setShowPicker(false);
   };
 
   const handleClose = () => {
@@ -495,23 +496,39 @@ export default function EmojiPage() {
               </Pressable>
             </View>
 
-            <Modal
-              animationType="fade"
-              transparent={true}
-              visible={showPicker}
-              onRequestClose={() => setShowPicker(false)}
-            >
-              <Pressable
-                  style={styles.modalOverlay}
-                  onPress={() => setShowPicker(false)}
+            {/* iOS: use Modal */}
+              {Platform.OS === "ios" && showPicker && (
+                <Modal
+                  animationType="fade"
+                  transparent={true}
+                  visible={showPicker}
+                  onRequestClose={() => setShowPicker(false)}
                 >
-                  <DateTimePickerPage 
-                    dateTime={dateTime}
-                    setDateTime={(newDate) => setDateTime(newDate)}
-                    onClose={() => setShowPicker(false)}
-                  />
-              </Pressable>
-            </Modal>
+                  <Pressable
+                    style={styles.modalOverlay}
+                    onPress={() => setShowPicker(false)}
+                  >
+                    <DateTimePickerPage
+                      dateTime={dateTime}
+                      setDateTime={(newDate) => setDateTime(newDate)}
+                      onClose={() => setShowPicker(false)}
+                    />
+                  </Pressable>
+                </Modal>
+              )}
+
+              {/* Android: render picker directly */}
+              {Platform.OS === "android" && showPicker && (
+                <DateTimePicker
+                  value={dateTime}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowPicker(false); // closes picker automatically
+                    if (selectedDate) setDateTime(selectedDate);
+                  }}
+                />
+              )}
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
