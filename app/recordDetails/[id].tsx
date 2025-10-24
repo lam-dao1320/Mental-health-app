@@ -69,6 +69,7 @@ export default function CardDetails() {
     [id, records]
   );
 
+
   const dateFormat = (date?: Date | null) => {
     if (!date) return "";
     const dateObj = new Date(date);
@@ -76,14 +77,15 @@ export default function CardDetails() {
     const month = dateObj.toLocaleString("en-US", { month: "short" });
     const year = dateObj.getFullYear();
     const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
-    console.log(dateObj.toISOString());
+    // console.log(dateObj.toISOString());
     return `${day} ${month} ${year} (${weekday})`;
   };
 
   if (!record) {
     return (
       <View style={s.container}>
-        <Text style={s.header}>You haven’t created any Mood Log yet.</Text>
+        <Text style={s.header}>Come back later!</Text>
+        <Text style={s.body}>We can't find your diary log.</Text>
       </View>
     );
   }
@@ -110,31 +112,52 @@ export default function CardDetails() {
     }
   }, [record]);
 
-  // Save the Updated Record
+ // ✅ Save or update record safely (supports null diary)
   const onSave = async () => {
     if (!canSave) return;
     if (!profile || !record) return;
 
     try {
-      // --- 1️⃣ Update the Diary first ---
-      const updatedDiary = {
-        body: text,
-        date: dateTime.toISOString(),
-        user_email: profile.email,
-      };
+      // --- 1️⃣ If the diary exists, update it ---
+      if (record.diary?.id) {
+        const updatedDiary = {
+          body: text,
+          date: dateTime.toISOString(),
+          user_email: profile.email,
+        };
 
-      const { error: diaryErr } = await supabase
-        .from("diary")
-        .update(updatedDiary)
-        .eq("id", record.diary.id);
+        const { error: diaryErr } = await supabase
+          .from("diary")
+          .update(updatedDiary)
+          .eq("id", record.diary.id);
 
-      if (diaryErr) throw diaryErr;
+        if (diaryErr) throw diaryErr;
+      } 
+      // --- 2️⃣ If no diary exists but text is present, create one ---
+      else if (text.trim().length > 0) {
+        const { data: newDiary, error: newDiaryErr } = await supabase
+          .from("diary")
+          .insert({
+            user_email: profile.email,
+            body: text,
+            date: dateTime.toISOString(),
+          })
+          .select("id")
+          .single();
 
-      // --- 2️⃣ Then update the Mood Log ---
+        if (newDiaryErr) throw newDiaryErr;
+
+        // update mood_log to link to new diary
+        await supabase
+          .from("mood_log")
+          .update({ diary_id: newDiary.id })
+          .eq("id", record.id);
+      }
+
+      // --- 3️⃣ Update the mood_log itself (always safe) ---
       const updatedMoodLog = {
         mood: record.mood,
         date: dateTime.toISOString(),
-        diary_id: record.diary.id,
         user_email: profile.email,
       };
 
@@ -145,12 +168,10 @@ export default function CardDetails() {
 
       if (moodErr) throw moodErr;
 
-      // --- 3️⃣ Notify success ---
       Alert.alert("Success", "Diary and mood log updated.");
       Keyboard.dismiss();
 
-      // Optionally refresh your data
-      await fetchDiary(); // or whatever refresh method you have
+      await fetchDiary(); // 🔄 refresh
     } catch (err: any) {
       console.error("Update failed:", err);
       Alert.alert("Error", err.message || "Failed to update record.");
@@ -158,13 +179,14 @@ export default function CardDetails() {
   };
 
 
-  // Delete the Record
+
+  // ✅ Delete function that safely handles null diary
   const onDelete = async () => {
     if (!record) return;
 
     Alert.alert(
       "Delete Entry",
-      "Are you sure you want to delete this diary and mood log? This action cannot be undone.",
+      "Are you sure you want to delete this mood log and diary (if exists)? This action cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -172,26 +194,23 @@ export default function CardDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              // 1️⃣ Delete mood_log first (it depends on diary_id)
+              // 1️⃣ Delete mood_log first
               const { error: moodErr } = await supabase
                 .from("mood_log")
                 .delete()
                 .eq("id", record.id);
-
               if (moodErr) throw moodErr;
 
-              // 2️⃣ Then delete the diary
-              const { error: diaryErr } = await supabase
-                .from("diary")
-                .delete()
-                .eq("id", record.diary.id);
+              // 2️⃣ Delete diary only if exists
+              if (record.diary?.id) {
+                const { error: diaryErr } = await supabase
+                  .from("diary")
+                  .delete()
+                  .eq("id", record.diary.id);
+                if (diaryErr) throw diaryErr;
+              }
 
-              if (diaryErr) throw diaryErr;
-
-              Alert.alert("Deleted", "Your diary and mood log have been deleted.");
-
-              // Optionally refresh data or navigate back
-              fetchDiary(); 
+              // Safe navigate
               router.back();
             } catch (err: any) {
               console.error("Delete failed:", err);
@@ -202,6 +221,8 @@ export default function CardDetails() {
       ]
     );
   };
+
+
 
 
   return (
@@ -354,7 +375,7 @@ const s = StyleSheet.create({
     padding: 12,
     flexDirection: "column",
     alignSelf: "stretch",
-    height: '60%',
+    height: '40%',
     paddingVertical: 12,
   },
   dateTimeContainer: {

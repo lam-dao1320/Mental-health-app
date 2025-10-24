@@ -1,6 +1,7 @@
 // app/diary.tsx
 import { useUserContext } from "@/context/authContext";
 import { getDiaryByEmail } from "@/lib/diary_crud";
+import { getRecordsByEmail } from "@/lib/mood_crud";
 import { supabase } from "@/lib/supabase";
 import React, { useEffect, useMemo, useState } from "react";
 import {
@@ -22,7 +23,7 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function DiaryPage() {
-  const { profile, setDiaryRecords } = useUserContext();
+  const { profile, setRecords, setDiaryRecords } = useUserContext();
   const [text, setText] = useState("");
   const [kbVisible, setKbVisible] = useState(false);
 
@@ -58,8 +59,10 @@ export default function DiaryPage() {
     if (profile) {
       try {
         const data = await getDiaryByEmail(profile.email);
+        const updatedRecords = await getRecordsByEmail(profile.email);
         // console.log(data);
         setDiaryRecords(data);
+        setRecords(updatedRecords);
       } catch (err: any) {
         Alert.alert("Error", "Registration failed");
         console.error(err instanceof Error ? err.message : "Resetting password failed");
