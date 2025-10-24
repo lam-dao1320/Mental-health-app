@@ -30,16 +30,23 @@ export default function Card({
   const wrapperProps = gradient
     ? {
         colors: gradient,
-        start: { x: 0.15, y: 0 },
-        end: { x: 0.85, y: 1 },
+        start: { x: 0.1, y: 0 },
+        end: { x: 0.9, y: 1 },
         style: s.gradientWrap,
       }
-    : { style: [s.gradientWrap, { backgroundColor: "#F4CA90" }] };
+    : { style: [s.gradientWrap, { backgroundColor: "#E6F0FF" }] };
 
   return (
-    <Pressable onPress={handleCardPress} style={s.press}>
+    <Pressable
+      onPress={handleCardPress}
+      style={({ pressed }) => [
+        s.press,
+        pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+      ]}
+    >
       <Wrapper {...(wrapperProps as any)}>
         <View style={s.inner}>
+          {/* Header */}
           <View style={s.cardHeader}>
             <Text style={s.moodText}>{moodText}</Text>
             <Text style={s.dateText}>{dateText}</Text>
@@ -47,8 +54,9 @@ export default function Card({
 
           <View style={s.divider} />
 
+          {/* Body */}
           <View style={s.cardBody}>
-            <Text style={s.bodyText} numberOfLines={3}>
+            <Text style={s.bodyText} numberOfLines={4}>
               {bodyText}
             </Text>
           </View>
@@ -60,46 +68,55 @@ export default function Card({
 
 const s = StyleSheet.create({
   press: {
-    marginHorizontal: 15,
+    width: "100%",
+    alignSelf: "center",
     marginVertical: 10,
   },
   gradientWrap: {
+    width: "100%",
     borderRadius: 12,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 4,
     overflow: "hidden",
   },
   inner: {
-    padding: 15,
-    backgroundColor: "transparent",
+    padding: 16,
   },
 
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 8,
+    alignItems: "center",
   },
   moodText: {
     fontWeight: "bold",
-    fontSize: 16,
+    fontSize: 17,
     color: "#1D1D1F",
-    lineHeight: 20, // helps emoji align in-line
+    fontFamily: "Noto Sans HK",
   },
   dateText: {
-    fontWeight: "bold",
-    fontSize: 14,
-    color: "#1D1D1F",
+    fontWeight: "600",
+    fontSize: 13,
+    color: "#374151",
+    fontFamily: "Noto Sans HK",
   },
 
   divider: {
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.55)",
+    backgroundColor: "rgba(0,0,0,0.1)",
     marginVertical: 8,
   },
 
-  cardBody: { gap: 6 },
-  bodyText: { color: "#000", fontSize: 15, lineHeight: 20 },
+  cardBody: {
+    gap: 4,
+  },
+  bodyText: {
+    color: "#111827",
+    fontSize: 15,
+    lineHeight: 21,
+    fontFamily: "Noto Sans HK",
+  },
 });

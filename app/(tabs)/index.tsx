@@ -1,4 +1,3 @@
-// app/(tabs)/index.tsx — MindLog Home
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router } from "expo-router";
 import React from "react";
@@ -12,9 +11,9 @@ import {
 
 export default function HomeScreen() {
   const goEmoji = () => router.push("/Emoji");
-  const goDiary = () => router.push("/diary");
   const goHistory = () => router.push("/history");
   const goCheckin = () => router.push("/(questionnaire)");
+  const goSuggest = () => router.push("/suggest");
 
   return (
     <View style={styles.container}>
@@ -41,18 +40,6 @@ export default function HomeScreen() {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionCard} onPress={goDiary}>
-            <View
-              style={[styles.iconContainer, { backgroundColor: "#FFF3F1" }]}
-            >
-              <Ionicons name="create" size={40} color="#F49790" />
-            </View>
-            <Text style={styles.actionTitle}>Write diary</Text>
-            <Text style={styles.actionDescription}>
-              Capture a short note or reflection
-            </Text>
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.actionCard} onPress={goHistory}>
             <View
               style={[styles.iconContainer, { backgroundColor: "#FFF7E9" }]}
@@ -64,15 +51,28 @@ export default function HomeScreen() {
               Browse past entries and moods
             </Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.actionCard} onPress={goCheckin}>
             <View
-              style={[styles.iconContainer, { backgroundColor: "#eaedf6ff" }]}
+              style={[styles.iconContainer, { backgroundColor: "#EAEDF6" }]}
             >
-              <Ionicons name="help-circle" size={40} color="#acaed1ff" />
+              <Ionicons name="help-circle" size={40} color="#ACAED1" />
             </View>
-            <Text style={styles.actionTitle}>Mental check‑in</Text>
+            <Text style={styles.actionTitle}>Mental check-in</Text>
             <Text style={styles.actionDescription}>
               Check in again if your mood changes
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionCard} onPress={goSuggest}>
+            <View
+              style={[styles.iconContainer, { backgroundColor: "#E9F0FF" }]}
+            >
+              <Ionicons name="sparkles" size={40} color="#84B4FF" />
+            </View>
+            <Text style={styles.actionTitle}>AI Suggestions</Text>
+            <Text style={styles.actionDescription}>
+              Get music, activities, and plans based on your mood
             </Text>
           </TouchableOpacity>
         </View>
@@ -113,7 +113,6 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  // Brand background
   container: {
     flex: 1,
     backgroundColor: "#F9F9FB",
@@ -123,17 +122,11 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
   },
 
-  // Header
   header: {
     alignItems: "center",
-    paddingTop: 40,
-    paddingBottom: 30,
+    paddingTop: 30,
     paddingHorizontal: 20,
-  },
-  logo: {
-    width: 420,
-    height: 200,
-    marginBottom: 20,
+    marginBottom: 10,
   },
   welcomeText: {
     fontSize: 28,
@@ -151,10 +144,9 @@ const styles = StyleSheet.create({
     fontFamily: "Noto Sans HK",
   },
 
-  // Actions
   actionsContainer: {
     paddingHorizontal: 20,
-    marginBottom: 30,
+    marginBottom: 20,
   },
   actionCard: {
     backgroundColor: "#FFFFFF",
@@ -192,10 +184,10 @@ const styles = StyleSheet.create({
     fontFamily: "Noto Sans HK",
   },
 
-  // Features
   featuresContainer: {
     paddingHorizontal: 20,
     marginBottom: 30,
+    alignItems: "center", // ensures children items centered horizontally
   },
   featuresTitle: {
     fontSize: 22,
@@ -208,25 +200,18 @@ const styles = StyleSheet.create({
   featureItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FCFAE1",
-    borderRadius: 15,
-    padding: 15,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 2,
-    elevation: 2,
+    width: "100%",
+    justifyContent: "center", // center row contents horizontally
+    marginBottom: 12,
   },
   featureText: {
     fontSize: 16,
     color: "#1D1D1F",
-    marginLeft: 15,
-    flex: 1,
+    marginLeft: 12,
+    textAlign: "center", // center each feature text
     fontFamily: "Noto Sans HK",
   },
 
-  // CTA
   getStartedButton: {
     backgroundColor: "#ACD1C9",
     flexDirection: "row",

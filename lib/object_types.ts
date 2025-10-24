@@ -48,3 +48,8 @@ export interface Plan {
 export interface PlanActivities {
   plan_activities: Plan[];
 }
+
+export interface QuestionnaireLog{
+  user_email?: string;
+  date: Date | null;
+}

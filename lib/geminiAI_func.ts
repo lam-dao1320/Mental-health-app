@@ -8,7 +8,7 @@ export async function suggestActivities(status: string) {
         Then, list 5 specific activities that fit this single chosen category. 
         For each activity, provide its **name**, brief instructions, and a helpful resource link.`;
 
-    console.log("AI Activity Suggestion Prompt:\n", prompt);
+    // console.log("AI Activity Suggestion Prompt:\n", prompt);
 
     try {
         const response = await activityAI.models.generateContent({
@@ -20,7 +20,7 @@ export async function suggestActivities(status: string) {
                 temperature: 0.5,
             }
         });
-        console.log("AI Response Text:\n", response.text?.trim());
+        // console.log("AI Response Text:\n", response.text?.trim());
 
         // Parse the JSON string from the response text and return the object
         if (!response.text) {

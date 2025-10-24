@@ -1,4 +1,5 @@
 import { useUserContext } from "@/context/authContext";
+import { addQuestionnaireLog } from "@/lib/log_crud";
 import { getUserByEmail, updateUser } from "@/lib/user_crud";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -93,9 +94,14 @@ export default function Summary() {
       overall: total,
       checked_in_at: new Date(),
     };
+    let newQuestionnaireLog = {
+      user_email: profile?.email || "",
+      date: new Date(),
+    }
     // console.log("Updated profile to submit:", updatedProfile);
     try {
       await updateUser(updatedProfile);
+      await addQuestionnaireLog(newQuestionnaireLog);
       if (profile) { 
         const profileData = await getUserByEmail(profile.email); 
         setProfile(profileData); 

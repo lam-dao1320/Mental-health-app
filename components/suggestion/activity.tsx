@@ -1,6 +1,13 @@
 import { Activity } from "@/lib/object_types";
 import { useState } from "react";
-import { FlatList, Linking, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  FlatList,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function ActivitySuggestion(data: any) {
   console.log("QuickActivitySuggestion received data:", data.data);
@@ -16,10 +23,11 @@ export default function ActivitySuggestion(data: any) {
     const isSelected = selectedActivityName === item.name;
 
     return (
-      <View style={styles.itemContainer}>
-        <TouchableOpacity 
-          onPress={() => toggleDetails(item.name)} 
-          style={styles.button}
+      <View style={[styles.card, isSelected && styles.cardExpanded]}>
+        <TouchableOpacity
+          onPress={() => toggleDetails(item.name)}
+          style={styles.cardHeader}
+          activeOpacity={0.8}
         >
           <View style={{width:300}}>
             <Text style={styles.title}>{item.name}</Text>
@@ -58,22 +66,23 @@ export default function ActivitySuggestion(data: any) {
       />
     </View>
   );
-};
+}
 
 // --- STYLES ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingVertical: 30,
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f5f5',
-    width: 400,
+    width: "100%",
+    backgroundColor: "#F9F9FB",
+    paddingVertical: 20,
   },
   header: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#1D1D1F",
+    marginBottom: 18,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
   },
   smallHeader: {
     fontSize: 20,
@@ -88,24 +97,30 @@ const styles = StyleSheet.create({
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 3.84,
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  button: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 15,
+  cardExpanded: {
+    backgroundColor: "#FDFCF7",
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#007AFF', // Theme color for category titles
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 18,
+  },
+  categoryName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#007AFF",
+    fontFamily: "Noto Sans HK",
   },
   indicator: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   details: {
     paddingHorizontal: 15,
@@ -117,18 +132,19 @@ const styles = StyleSheet.create({
   },
   activityDescription: {
     fontSize: 14,
-    color: '#555',
-    marginBottom: 5,
+    color: "#444",
     lineHeight: 20,
+    fontFamily: "Noto Sans HK",
   },
   linkButton: {
-    alignSelf: 'flex-start',
-    marginTop: 2,
+    alignSelf: "flex-start",
+    marginTop: 4,
   },
   linkText: {
     fontSize: 14,
-    color: '#34A853', // Green for links/resources
-    fontWeight: '500',
-    textDecorationLine: 'underline',
+    color: "#34A853",
+    fontWeight: "500",
+    textDecorationLine: "underline",
+    fontFamily: "Noto Sans HK",
   },
 });
