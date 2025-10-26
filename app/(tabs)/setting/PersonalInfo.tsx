@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Dimensions,
+  Image,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -14,6 +15,11 @@ import {
   TextInput,
   View,
 } from "react-native";
+import icon1 from "../../../assets/images/icon/avatar1.png";
+import icon2 from "../../../assets/images/icon/avatar2.png";
+import icon3 from "../../../assets/images/icon/avatar3.png";
+import icon4 from "../../../assets/images/icon/avatar4.png";
+import icon5 from "../../../assets/images/icon/avatar5.png";
 
 const Colors = {
   bg: "#F9F9FB",
@@ -40,6 +46,25 @@ export default function PersonalInfoScreen() {
   const [country, setCountry] = useState(profile?.country);
   const [phone, setPhone] = useState(profile?.phone);
   const [birthDate, setBirthDate] = useState<any>(profile?.birth_date);
+
+  // Icon selection state
+  const [selectedIcon, setSelectedIcon] = useState(profile?.icon_name ?? "avatar1");
+  // const iconUris = [
+  //   Image.resolveAssetSource(icon1).uri,
+  //   Image.resolveAssetSource(icon2).uri,
+  //   Image.resolveAssetSource(icon3).uri,
+  //   Image.resolveAssetSource(icon4).uri,
+  //   Image.resolveAssetSource(icon5).uri,
+  // ];
+  const icons = [
+    { key: "avatar1", src: icon1 },
+    { key: "avatar2", src: icon2 },
+    { key: "avatar3", src: icon3 },
+    { key: "avatar4", src: icon4 },
+    { key: "avatar5", src: icon5 },
+  ];
+  // console.log("Selected icon URL:", selectedIcon);
+
 
   const [error, setError] = useState<string | null>(null);
 
@@ -86,6 +111,7 @@ export default function PersonalInfoScreen() {
       anxiety: profile?.anxiety ?? null,
       overall: profile?.overall ?? null,
       checked_in_at: profile?.checked_in_at ?? null,
+      icon_name: selectedIcon ?? profile?.icon_name ?? "avatar1",
     }
 
     // console.log("Update profile: ", updatedProfile);
@@ -122,6 +148,26 @@ export default function PersonalInfoScreen() {
           <Text style={styles.title}>Personal Info</Text>
           {error && <Text style={styles.errorText}>{error}</Text>}
         </View>
+
+        {/* Icon Selection */}
+        <View style={styles.iconContainer}>
+          <Text style={styles.iconLabel}>Choose your avatar</Text>
+          <View style={styles.iconRow}>
+            {icons.map((icon) => {
+              const isSelected = selectedIcon === icon.key;
+              return (
+                <Pressable
+                  key={icon.key}
+                  onPress={() => setSelectedIcon(icon.key)}
+                  style={[styles.iconWrapper, isSelected && styles.iconSelected]}
+                >
+                  <Image source={icon.src} style={styles.iconImage} />
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Form */}
         <View
           style={[
@@ -312,4 +358,45 @@ const styles = StyleSheet.create({
         textAlign: "center",
         fontFamily: "Noto Sans HK",
     },
+  iconContainer: {
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  iconLabel: {
+    fontSize: 16,
+    color: Colors.text,
+    fontWeight: "600",
+    marginBottom: 10,
+    fontFamily: "Noto Sans HK",
+  },
+  iconRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 12,
+  },
+  iconWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "transparent",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  iconSelected: {
+    borderColor: Colors.mint,
+    borderWidth: 3,
+  },
+  iconImage: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    resizeMode: "cover",
+  },
 });

@@ -1,4 +1,5 @@
 // app/(tabs)/settings.tsx  or  app/settings.tsx
+import { avatarMap, defaultAvatar } from "@/constants/avatars";
 import { useUserContext } from "@/context/authContext";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
@@ -30,6 +31,8 @@ export default function SettingsScreen() {
   const { profile } = useUserContext();
   const router = useRouter();
 
+  const [imageError, setImageError] = React.useState(false);
+
   return (
     <ScrollView
       style={{ flex: 1, backgroundColor: Colors.bg }}
@@ -39,10 +42,9 @@ export default function SettingsScreen() {
       <View style={styles.screen}>
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
-            source={{
-              uri: "https://media.istockphoto.com/id/1300845620/vector/user-icon-flat-isolated-on-white-background-user-symbol-vector-illustration.jpg?s=612x612&w=0&k=20&c=yBeyba0hUkh14_jgv1OKqIH0CCSWU_4ckRkAoy2p73o=",
-            }}
+            source={avatarMap[profile?.icon_name || ""] || defaultAvatar}
             style={styles.avatar}
+            onError={() => setImageError(true)}
           />
           <Text style={styles.name}>
             {profile?.first_name} {profile?.last_name}
