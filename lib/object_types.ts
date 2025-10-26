@@ -10,6 +10,7 @@ export interface UserProfile {
   anxiety: number | null;
   overall: number | null;
   checked_in_at: Date | null;
+  icon_name: string | null;
 }
 
 export type MoodRecord = {
