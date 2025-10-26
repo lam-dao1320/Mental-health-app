@@ -11,12 +11,14 @@ import {
 
 export default function ActivitySuggestion(data: any) {
   console.log("QuickActivitySuggestion received data:", data.data);
-  // selectedId now tracks the name of the expanded category
-  const [selectedActivityName, setSelectedActivityName] = useState<string | null>(null);
+  const [selectedActivityName, setSelectedActivityName] = useState<
+    string | null
+  >(null);
 
   const toggleDetails = (activityName: string) => {
-    // Toggles: If it's the same, set to null (collapse). Otherwise, set the new name (expand).
-    setSelectedActivityName(prevName => (prevName === activityName ? null : activityName));
+    setSelectedActivityName((prevName) =>
+      prevName === activityName ? null : activityName
+    );
   };
 
   const renderActivityItem = ({ item }: { item: Activity }) => {
@@ -29,25 +31,23 @@ export default function ActivitySuggestion(data: any) {
           style={styles.cardHeader}
           activeOpacity={0.8}
         >
-          <View style={{width:300}}>
-            <Text style={styles.title}>{item.name}</Text>
-          </View>
-          {/* Visual Indicator */}
-          <Text style={styles.indicator}>{isSelected ? '▲' : '▼'}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <Text style={styles.indicator}>{isSelected ? "▲" : "▼"}</Text>
         </TouchableOpacity>
-        
-        {/* Conditional rendering of the activities list */}
+
         {isSelected && (
           <View style={styles.details}>
             <Text style={styles.activityDescription}>• {item.description}</Text>
-            {item.link &&
-              <TouchableOpacity 
-                onPress={() => Linking.openURL(item.link)} 
+            {item.link && (
+              <TouchableOpacity
+                onPress={() => Linking.openURL(item.link)}
                 style={styles.linkButton}
               >
                 <Text style={styles.linkText}>View Resource 🔗</Text>
               </TouchableOpacity>
-            }
+            )}
           </View>
         )}
       </View>
@@ -56,94 +56,100 @@ export default function ActivitySuggestion(data: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>AI Suggested Stress Activities 🧘</Text>
-      <Text style={styles.smallHeader}>{data.data.chosen_category}</Text>
+      <Text style={styles.header}>AI Suggested Activities 🧘</Text>
+      <Text style={styles.subHeader}>{data.data.chosen_category}</Text>
       <FlatList
         data={data.data.activities}
         keyExtractor={(item) => item.name}
         renderItem={renderActivityItem}
         extraData={selectedActivityName}
+        scrollEnabled={false} // ✅ fix nested ScrollView bug
+        contentContainerStyle={{ gap: 12 }}
       />
     </View>
   );
 }
 
-// --- STYLES ---
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     width: "100%",
-    backgroundColor: "#F9F9FB",
-    paddingVertical: 20,
+    backgroundColor: "transparent",
+    paddingVertical: 10,
   },
   header: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#1D1D1F",
-    marginBottom: 18,
     textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
-  smallHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+  subHeader: {
+    fontSize: 15,
+    color: "#F49790",
+    textAlign: "center",
+    marginBottom: 16,
+    marginTop: 4,
+    fontWeight: "600",
+    fontFamily: "Noto Sans HK",
   },
-  itemContainer: {
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 3,
-    shadowColor: '#000',
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 2,
   },
   cardExpanded: {
-    backgroundColor: "#FDFCF7",
+    backgroundColor: "#FFF5F7",
+    borderColor: "#F4C6C3",
   },
   cardHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  categoryName: {
+  title: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#007AFF",
+    color: "#1D1D1F",
+    flex: 1,
+    marginRight: 10,
     fontFamily: "Noto Sans HK",
   },
   indicator: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#F49790",
   },
   details: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderTopColor: '#eee',
-    backgroundColor: '#fafafa',
-    borderBottomLeftRadius: 8,
-    borderBottomRightRadius: 8,
+    backgroundColor: "#FFF8FA",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopColor: "#F4C6C3",
+    borderTopWidth: 0.8,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   activityDescription: {
     fontSize: 14,
-    color: "#444",
+    color: "#555",
     lineHeight: 20,
     fontFamily: "Noto Sans HK",
   },
   linkButton: {
     alignSelf: "flex-start",
-    marginTop: 4,
+    marginTop: 6,
   },
   linkText: {
     fontSize: 14,
-    color: "#34A853",
-    fontWeight: "500",
+    color: "#E57373",
+    fontWeight: "600",
     textDecorationLine: "underline",
     fontFamily: "Noto Sans HK",
   },
