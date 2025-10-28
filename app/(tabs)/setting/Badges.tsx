@@ -50,8 +50,8 @@ export default function BadgesPage() {
   const badgeIcons: Record<BadgeType, Record<BadgeLevel, any>> = {
     mood: {
       beginner: require("@/assets/images/mood/beginner.png"),
-      mid: require("@/assets/images/mindLog_icon.png"),
-      advanced: require("@/assets/images/mindLog_icon.png"),
+      mid: require("@/assets/images/mood/mid.png"),
+      advanced: require("@/assets/images/mood/advanced.png"),
     },
     questionnaire: {
       beginner: require("@/assets/images/mindLog_icon.png"),
