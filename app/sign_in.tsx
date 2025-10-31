@@ -28,6 +28,8 @@ export default function SignIn() {
   const [isSignIn, setIsSignIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -82,7 +84,11 @@ export default function SignIn() {
         await doLogin(email, password);
       } else {
         await signUp(email, password);
-        await doLogin(email, password);
+        // after sign up, redirect to login panel
+        setIsSignIn(true);
+        setError(
+          "Account created. Please verify your email before signing in."
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
@@ -90,7 +96,6 @@ export default function SignIn() {
       setLoading(false);
     }
   };
-
   const handleForgot = async () => {
     if (!email) {
       setError("Enter your email first");
@@ -132,24 +137,46 @@ export default function SignIn() {
               placeholderTextColor="#9CA3AF"
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#9CA3AF"
-            />
-
-            {!isSignIn && (
+            <View style={[styles.inputWrapper]}>
               <TextInput
-                style={styles.input}
-                placeholder="Confirm password"
-                value={confirm}
-                onChangeText={setConfirm}
-                secureTextEntry
+                style={styles.inputField}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
                 placeholderTextColor="#9CA3AF"
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.toggleButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.toggleText}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {!isSignIn && (
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Confirm password"
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.toggleButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.toggleText}>
+                    {showPassword ? "Hide" : "Show"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             <TouchableOpacity
@@ -190,9 +217,10 @@ export default function SignIn() {
               }}
             >
               <Text style={styles.secondaryText}>
-                {isSignIn
-                  ? "Need an account?  Sign Up"
-                  : "Have an account?  Sign In"}
+                {isSignIn ? "Need an account? " : "Have an account? "}
+                <Text style={styles.highlightText}>
+                  {isSignIn ? "Sign Up" : "Sign In"}
+                </Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -272,5 +300,43 @@ const styles = StyleSheet.create({
     borderColor: "#ACD1C9",
   },
   secondaryButton: { marginTop: 10, alignItems: "center" },
-  secondaryText: { color: "#6B7280", fontSize: 14 },
+  toggleButton: {
+    position: "absolute",
+    right: 14,
+    top: "50%",
+    transform: [{ translateY: -10 }], // keeps the text vertically centered
+  },
+  toggleText: {
+    fontSize: 14,
+    color: "#0284c7",
+    fontWeight: "500",
+    fontFamily: "Noto Sans HK",
+  },
+  inputField: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "#FAFAFA",
+    fontSize: 16,
+    color: "#111827",
+    paddingRight: 55,
+  },
+  secondaryText: {
+    color: "#6B7280",
+    fontSize: 14,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
+  },
+  highlightText: {
+    color: "#0284c7",
+    fontWeight: "500",
+    fontFamily: "Noto Sans HK",
+  },
+  inputWrapper: {
+    position: "relative",
+    width: "100%",
+    marginBottom: 18, // previously 15
+  },
 });
