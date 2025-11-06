@@ -22,7 +22,8 @@ const Colors = {
   border: "rgba(0,0,0,0.06)",
   mint: "#ACD1C9",
   divider: "rgba(0,0,0,0.08)",
-  overlay: "rgba(255,255,255,0.6)", // overlay for fake grayscale
+  overlay: "rgba(255,255,255,0.6)",
+  gray: "#D1D5DB",
 };
 
 export default function BadgesPage() {
@@ -99,10 +100,7 @@ export default function BadgesPage() {
               <View style={styles.badgeWrapper}>
                 <Image
                   source={badgeIcons[type][level]}
-                  style={[
-                    styles.badgeImage,
-                    !earned && { opacity: 0.5 }, // soften color
-                  ]}
+                  style={[styles.badgeImage, !earned && { opacity: 0.5 }]}
                 />
                 {!earned && (
                   <View style={styles.grayOverlay} pointerEvents="none" />
@@ -121,9 +119,45 @@ export default function BadgesPage() {
     </View>
   );
 
+  const renderOneTimeSection = () => {
+    const oneTimeTasks = [
+      "First Login",
+      "First Mood Entry",
+      "First Suggestion Click",
+      "First Diary Edit",
+      "First Data Download",
+      "First Badge Earned",
+    ];
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>One-Time Tasks</Text>
+        <Text style={styles.sectionDesc}>
+          Preview of unique achievements. These will unlock as you use the app.
+        </Text>
+
+        <View style={styles.badgeRow}>
+          {oneTimeTasks.map((label, index) => (
+            <View key={index} style={styles.badgeContainer}>
+              <View
+                style={[
+                  styles.circlePlaceholder,
+                  { backgroundColor: Colors.gray },
+                ]}
+              />
+              <Text style={[styles.badgeLabel, { color: Colors.sub }]}>
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Your Badges 🏅</Text>
+      <Text style={styles.title}>Your Badges</Text>
 
       {renderBadgeRow(
         "mood",
@@ -138,6 +172,10 @@ export default function BadgesPage() {
         "Questionnaire Badges",
         "Track your growth through daily reflections!"
       )}
+
+      <View style={styles.divider} />
+
+      {renderOneTimeSection()}
     </ScrollView>
   );
 }
@@ -171,7 +209,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -188,10 +225,13 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-around",
+    rowGap: 18,
   },
   badgeContainer: {
     alignItems: "center",
+    width: 90,
   },
   badgeWrapper: {
     position: "relative",
@@ -218,6 +258,13 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
-    marginVertical: 8,
+    marginVertical: 15,
+  },
+  circlePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 6,
+    backgroundColor: Colors.gray,
   },
 });
