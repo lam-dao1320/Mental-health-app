@@ -156,25 +156,23 @@ export default function BadgesPage() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
       <Text style={styles.title}>Your Badges</Text>
-
       {renderBadgeRow(
         "mood",
         "Mood Tracker Badges",
         "Earn badges for consistently logging your moods!"
       )}
-
       <View style={styles.divider} />
-
       {renderBadgeRow(
         "questionnaire",
         "Questionnaire Badges",
         "Track your growth through daily reflections!"
       )}
-
       <View style={styles.divider} />
-
       {renderOneTimeSection()}
     </ScrollView>
   );
