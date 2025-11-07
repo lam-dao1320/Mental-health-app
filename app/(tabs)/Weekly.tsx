@@ -1,4 +1,3 @@
-import WeeklyBadges from "@/components/weekly/badges";
 import WeeklyMoodMap from "@/components/weekly/chart";
 import WeeklySummary from "@/components/weekly/summary";
 import { useUserContext } from "@/context/authContext";
@@ -116,7 +115,7 @@ export default function WeeklyPage() {
       <Animated.View style={{ opacity: fadeAnim, width: "100%" }}>
         <WeeklySummary summary={summary} />
         <WeeklyMoodMap data={moodLogs} />
-        <WeeklyBadges />
+        {/* <WeeklyBadges /> */}
       </Animated.View>
     </ScrollView>
   );
