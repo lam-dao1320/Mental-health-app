@@ -1,7 +1,9 @@
 import ActivitySuggestion from "@/components/suggestion/activity";
+import AIDisclaimerModal from "@/components/suggestion/disclaimer";
 import { useUserContext } from "@/context/authContext";
 import { suggestActivities } from "@/lib/geminiAI_func";
 import { getRecordsByEmail } from "@/lib/mood_crud";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -21,20 +23,26 @@ export default function SuggestPage() {
   const [activitySuggestion, setActivitySuggestion] = useState<any | null>(
     null
   );
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [aiConsent, setAiConsent] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      if (profile) {
-        const loadData = async () => {
+      const loadData = async () => {
+        if (profile) {
           try {
             const moodData = await getRecordsByEmail(profile.email);
             setData(moodData[0]);
           } catch (error) {
             setError("Error loading mood records: " + error);
           }
-        };
-        loadData();
-      }
+        }
+
+        const savedConsent = await AsyncStorage.getItem("ai_consent");
+        if (savedConsent === null) setShowDisclaimer(true);
+        else setAiConsent(savedConsent === "true");
+      };
+      loadData();
     }, [profile])
   );
 
@@ -54,6 +62,10 @@ export default function SuggestPage() {
   };
 
   const handleActivitySuggestion = async () => {
+    if (!aiConsent) {
+      setError("AI suggestions are disabled until you consent.");
+      return;
+    }
     setActivityLoading(true);
     setError(null);
     try {
@@ -81,40 +93,53 @@ export default function SuggestPage() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.section}>
-          {/* Output Box */}
           <View style={styles.outputBox}>
             {!activitySuggestion ? (
               <Text style={styles.placeholder}>
-                🌿 Hey there! Let’s see what new activity you could try today!
+                🌿 Hey there! AI suggests small activities based on your most
+                recent mood entry.
               </Text>
             ) : (
               <ActivitySuggestion data={activitySuggestion} />
             )}
           </View>
 
-          {/* Button */}
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: "#F49790" },
-              activityLoading && styles.disabled,
+              { backgroundColor: aiConsent ? "#F49790" : "#BDBDBD" },
+              (activityLoading || !aiConsent) && styles.disabled,
             ]}
             onPress={handleActivitySuggestion}
-            disabled={activityLoading}
+            disabled={activityLoading || !aiConsent}
           >
             {activityLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Get Activity Suggestion</Text>
+              <Text style={styles.buttonText}>
+                {aiConsent
+                  ? "Get Activity Suggestion"
+                  : "AI Disabled (View Disclaimer)"}
+              </Text>
             )}
           </TouchableOpacity>
+        </View>
 
-          <Text style={styles.description}>
-            AI suggests small activities like music, journaling, or walking
-            based on your most recent mood entry.
-          </Text>
+        {/* Re-Read Disclaimer Button — at very bottom */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => setShowDisclaimer(true)}>
+            <Text style={styles.reviewText}>Review AI Disclaimer</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <AIDisclaimerModal
+        visible={showDisclaimer}
+        onClose={(consent) => {
+          setAiConsent(consent);
+          setShowDisclaimer(false);
+        }}
+      />
     </View>
   );
 }
@@ -148,10 +173,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
-  section: {
-    width: "100%",
-    alignItems: "center",
-  },
+  section: { width: "100%", alignItems: "center" },
   outputBox: {
     width: "100%",
     minHeight: 120,
@@ -205,4 +227,16 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   disabled: { opacity: 0.6 },
+  footer: {
+    marginTop: 40,
+    paddingBottom: 20,
+    alignItems: "center",
+    width: "100%",
+  },
+  reviewText: {
+    color: "#6B7280",
+    fontSize: 14,
+    textDecorationLine: "underline",
+    fontFamily: "Noto Sans HK",
+  },
 });
