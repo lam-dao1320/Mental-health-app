@@ -60,6 +60,7 @@ export default function SignIn() {
       return false;
     }
 
+    console.log("Questionnaire check for:", email, "→", data);
     // If zero valid rows → they haven't filled it out
     return data && data.length > 0;
   };
@@ -89,13 +90,6 @@ export default function SignIn() {
   };
 
   const hydrateAndGo = async (userEmail: string) => {
-    const profileData = await getUserByEmail(userEmail);
-    setProfile(profileData);
-    const moodData = await getRecordsByEmail(userEmail);
-    setRecords(moodData);
-    const diaryData = await getDiaryByEmail(userEmail);
-    setDiaryRecords(diaryData);
-
     // --- NEW PART: questionnaire check ---
     const completed = await hasCompletedQuestionnaire(userEmail);
 
@@ -104,6 +98,13 @@ export default function SignIn() {
       router.dismissAll();
       return;
     }
+
+    const profileData = await getUserByEmail(userEmail);
+    setProfile(profileData);
+    const moodData = await getRecordsByEmail(userEmail);
+    setRecords(moodData);
+    const diaryData = await getDiaryByEmail(userEmail);
+    setDiaryRecords(diaryData);
 
     // Otherwise go to main tabs
     router.replace("/(tabs)");
