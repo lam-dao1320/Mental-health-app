@@ -49,6 +49,21 @@ export default function SignIn() {
     checkSaved();
   }, []);
 
+  const hasCompletedQuestionnaire = async (email: string) => {
+    const { data, error } = await supabase
+      .from("questionnaire_log")
+      .select("id")
+      .eq("user_email", email);
+
+    if (error) {
+      console.warn("Questionnaire check failed:", error.message);
+      return false;
+    }
+
+    // If zero valid rows → they haven't filled it out
+    return data && data.length > 0;
+  };
+
   const ensureUserProfile = async (email: string) => {
     const { data, error } = await supabase
       .from("user_profiles")
@@ -80,6 +95,17 @@ export default function SignIn() {
     setRecords(moodData);
     const diaryData = await getDiaryByEmail(userEmail);
     setDiaryRecords(diaryData);
+
+    // --- NEW PART: questionnaire check ---
+    const completed = await hasCompletedQuestionnaire(userEmail);
+
+    if (!completed) {
+      router.replace("/(questionnaire)");
+      router.dismissAll();
+      return;
+    }
+
+    // Otherwise go to main tabs
     router.replace("/(tabs)");
     router.dismissAll();
   };
