@@ -48,32 +48,59 @@ export default function HistoryPage() {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const { data, error } = await supabase
-          .from("mood_log")
-          .select(
-            `
-            id,
-            user_email,
-            mood,
-            date,
-            diary:diary!fk_diary (
-              id,
-              body,
-              date
+        if (!profile?.email) return;
+
+        // fetch both mood logs (with diary links) and standalone diaries
+        const [moods, diaries] = await Promise.all([
+          supabase
+            .from("mood_log")
+            .select(
+              `
+        id,
+        user_email,
+        mood,
+        date,
+        diary:diary!fk_diary (
+          id,
+          body,
+          date
+        )
+      `
             )
-          `
-          )
-          .order("date", { ascending: false });
+            .eq("user_email", profile.email)
+            .order("date", { ascending: false }),
+          supabase
+            .from("diary")
+            .select("id, user_email, body, date")
+            .eq("user_email", profile.email)
+            .order("date", { ascending: false }),
+        ]);
 
-        if (error) {
-          console.error("Error fetching mood_log history:", error);
-          return;
-        }
+        if (moods.error) console.error("mood_log fetch error:", moods.error);
+        if (diaries.error) console.error("diary fetch error:", diaries.error);
 
-        const filteredRecord = data.filter(
-          (item) => item.user_email === profile?.email
+        // merge and normalize shape
+        const moodRecords =
+          moods.data?.map((m) => ({
+            id: m.id,
+            mood: m.mood,
+            date: m.date,
+            diary: m.diary ? { body: m.diary.body, date: m.diary.date } : null,
+          })) ?? [];
+
+        const diaryRecords =
+          diaries.data?.map((d) => ({
+            id: d.id,
+            mood: "No Moog Log",
+            date: d.date,
+            diary: { body: d.body, date: d.date },
+          })) ?? [];
+
+        const merged = [...moodRecords, ...diaryRecords].sort(
+          (a, b) => new Date(b.date) - new Date(a.date)
         );
-        setRecords(filteredRecord || []);
+
+        setRecords(merged);
       };
 
       load();

@@ -174,71 +174,105 @@ export default function EmojiPage() {
   const handleDiaryToggle = () => setIsOpen(!isOpen);
 
   // ✅ Save diary linked to latest mood
+  // const onSaveDiary = async () => {
+  //   if (!profile) return;
+
+  //   try {
+  //     const cutoff = dateTime.toISOString();
+
+  //     // fetch latest mood by matching with the date time
+  //     const { data: moods, error: moodErr } = await supabase
+  //       .from("mood_log")
+  //       .select("id, date, diary_id")
+  //       .eq("user_email", profile.email)
+  //       .gte("date", cutoff)
+  //       .order("date", { ascending: false })
+  //       .limit(1);
+
+  //     if (moodErr) throw moodErr;
+  //     if (!moods || moods.length === 0) {
+  //       Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
+  //       return;
+  //     }
+
+  //     const latest = moods[0];
+  //     if (latest.diary_id) {
+  //       Alert.alert("Error", "This mood already has a diary linked.");
+  //       return;
+  //     }
+
+  //     // create diary
+  //     const { data: diary, error: diaryErr } = await supabase
+  //       .from("diary")
+  //       .insert({
+  //         user_email: profile.email,
+  //         body: textDiary,
+  //         date: moods[0].date,
+  //       })
+  //       .select("id") // ensure ID is returned
+  //       .single();
+
+  //     if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
+
+  //     // explicitly update mood_log
+  //     const { error: updateErr } = await supabase
+  //       .from("mood_log")
+  //       .update({ diary_id: diary.id })
+  //       .eq("id", latest.id)
+  //       .select("id, diary_id"); // force return, so we can debug
+
+  //     if (updateErr) throw updateErr;
+  //     console.log("✅ mood_log updated:", {
+  //       moodId: latest.id,
+  //       linkedDiaryId: diary.id,
+  //     });
+
+  //     Alert.alert("Success", "Diary linked to recent mood!");
+  //     fetchRecords();
+  //     setTextDiary("");
+  //     setIsOpen(false);
+  //   } catch (err) {
+  //     Alert.alert(
+  //       "Error",
+  //       err instanceof Error ? err.message : "Something went wrong"
+  //     );
+  //     console.error(err);
+  //   }
+  //   setShowPicker(false);
+  // };
+
   const onSaveDiary = async () => {
     if (!profile) return;
 
     try {
-      const cutoff = dateTime.toISOString();
-
-      // fetch latest mood by matching with the date time
-      const { data: moods, error: moodErr } = await supabase
-        .from("mood_log")
-        .select("id, date, diary_id")
-        .eq("user_email", profile.email)
-        .eq("date", cutoff)
-        .order("date", { ascending: false })
-        .limit(1);
-
-      if (moodErr) throw moodErr;
-      if (!moods || moods.length === 0) {
-        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
-        return;
-      }
-
-      const latest = moods[0];
-      if (latest.diary_id) {
-        Alert.alert("Error", "This mood already has a diary linked.");
-        return;
-      }
-
-      // create diary
+      // Insert diary entry regardless of mood
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")
         .insert({
           user_email: profile.email,
           body: textDiary,
-          date: moods[0].date,
+          date: dateTime.toISOString(),
         })
-        .select("id") // ensure ID is returned
+        .select("*") // return full row for debug
         .single();
 
-      if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
+      if (diaryErr) throw diaryErr;
 
-      // explicitly update mood_log
-      const { error: updateErr } = await supabase
-        .from("mood_log")
-        .update({ diary_id: diary.id })
-        .eq("id", latest.id)
-        .select("id, diary_id"); // force return, so we can debug
+      console.log("✅ Diary created:", diary);
 
-      if (updateErr) throw updateErr;
-      console.log("✅ mood_log updated:", {
-        moodId: latest.id,
-        linkedDiaryId: diary.id,
-      });
-
-      Alert.alert("Success", "Diary linked to recent mood!");
-      fetchRecords();
+      Alert.alert("Success", "Diary saved!");
+      await fetchRecords();
       setTextDiary("");
       setIsOpen(false);
     } catch (err) {
+      console.error("❌ Diary insert error:", err);
       Alert.alert(
         "Error",
         err instanceof Error ? err.message : "Something went wrong"
       );
-      console.error(err);
+    } finally {
+      setShowPicker(false);
     }
-    setShowPicker(false);
   };
 
   const handleClose = () => {
@@ -497,38 +531,38 @@ export default function EmojiPage() {
             </View>
 
             {/* iOS: use Modal */}
-              {Platform.OS === "ios" && showPicker && (
-                <Modal
-                  animationType="fade"
-                  transparent={true}
-                  visible={showPicker}
-                  onRequestClose={() => setShowPicker(false)}
+            {Platform.OS === "ios" && showPicker && (
+              <Modal
+                animationType="fade"
+                transparent={true}
+                visible={showPicker}
+                onRequestClose={() => setShowPicker(false)}
+              >
+                <Pressable
+                  style={styles.modalOverlay}
+                  onPress={() => setShowPicker(false)}
                 >
-                  <Pressable
-                    style={styles.modalOverlay}
-                    onPress={() => setShowPicker(false)}
-                  >
-                    <DateTimePickerPage
-                      dateTime={dateTime}
-                      setDateTime={(newDate) => setDateTime(newDate)}
-                      onClose={() => setShowPicker(false)}
-                    />
-                  </Pressable>
-                </Modal>
-              )}
+                  <DateTimePickerPage
+                    dateTime={dateTime}
+                    setDateTime={(newDate) => setDateTime(newDate)}
+                    onClose={() => setShowPicker(false)}
+                  />
+                </Pressable>
+              </Modal>
+            )}
 
-              {/* Android: render picker directly */}
-              {Platform.OS === "android" && showPicker && (
-                <DateTimePicker
-                  value={dateTime}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowPicker(false); // closes picker automatically
-                    if (selectedDate) setDateTime(selectedDate);
-                  }}
-                />
-              )}
+            {/* Android: render picker directly */}
+            {Platform.OS === "android" && showPicker && (
+              <DateTimePicker
+                value={dateTime}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowPicker(false); // closes picker automatically
+                  if (selectedDate) setDateTime(selectedDate);
+                }}
+              />
+            )}
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
