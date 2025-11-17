@@ -113,9 +113,19 @@ export default function WeeklyPage() {
       </View>
 
       <Animated.View style={{ opacity: fadeAnim, width: "100%" }}>
-        <WeeklySummary summary={summary} />
-        <WeeklyMoodMap data={moodLogs} />
-        {/* <WeeklyBadges /> */}
+        {moodLogs.length > 0 ? (
+          <>
+            <WeeklySummary summary={summary} />
+            <WeeklyMoodMap data={moodLogs} />
+          </>
+        ) : (
+          <View style={s.emptyContainer}>
+            <Text style={s.emptyText}>No mood logs this week yet.</Text>
+            <Text style={s.emptySubtext}>
+              Try adding a mood to start tracking your reflections.
+            </Text>
+          </View>
+        )}
       </Animated.View>
     </ScrollView>
   );
@@ -144,6 +154,23 @@ const s = StyleSheet.create({
     fontSize: 15,
     color: "#6B7280",
     marginTop: 8,
+    fontFamily: "Noto Sans HK",
+  },
+  emptyContainer: {
+    marginTop: 60,
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginBottom: 8,
+    fontFamily: "Noto Sans HK",
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
 });
