@@ -156,7 +156,10 @@ export default function DiaryPage() {
               multiline
               scrollEnabled
               value={text}
-              onChangeText={setText}
+              onChangeText={(val) => {
+                if (val.length > MAX_LEN) val = val.slice(0, MAX_LEN);
+                setText(val);
+              }}
               placeholder={placeholder}
               placeholderTextColor="rgba(0,0,0,0.35)"
               textAlignVertical="top"
