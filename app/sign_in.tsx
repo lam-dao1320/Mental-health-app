@@ -1,6 +1,7 @@
 import { useUserContext } from "@/context/authContext";
 import { getDiaryByEmail } from "@/lib/diary_crud";
 import { getRecordsByEmail } from "@/lib/mood_crud";
+import { supabase } from "@/lib/supabase";
 import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -48,13 +49,64 @@ export default function SignIn() {
     checkSaved();
   }, []);
 
+  const hasCompletedQuestionnaire = async (email: string) => {
+    const { data, error } = await supabase
+      .from("questionnaire_log")
+      .select("id")
+      .eq("user_email", email);
+
+    if (error) {
+      console.warn("Questionnaire check failed:", error.message);
+      return false;
+    }
+
+    console.log("Questionnaire check for:", email, "→", data);
+    // If zero valid rows → they haven't filled it out
+    return data && data.length > 0;
+  };
+
+  const ensureUserProfile = async (email: string) => {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (!data) {
+      await supabase.from("user_profiles").insert({
+        email,
+        first_name: "",
+        last_name: "",
+        phone: "",
+        birth_date: null,
+        country: "",
+        icon_name: "avatar1", // default avatar
+        depression: null,
+        anxiety: null,
+        overall: null,
+        checked_in_at: null,
+      });
+    }
+  };
+
   const hydrateAndGo = async (userEmail: string) => {
+    // --- NEW PART: questionnaire check ---
+    const completed = await hasCompletedQuestionnaire(userEmail);
+
+    if (!completed) {
+      router.replace("/(questionnaire)");
+      router.dismissAll();
+      return;
+    }
+
     const profileData = await getUserByEmail(userEmail);
     setProfile(profileData);
     const moodData = await getRecordsByEmail(userEmail);
     setRecords(moodData);
     const diaryData = await getDiaryByEmail(userEmail);
     setDiaryRecords(diaryData);
+
+    // Otherwise go to main tabs
     router.replace("/(tabs)");
     router.dismissAll();
   };
@@ -65,6 +117,9 @@ export default function SignIn() {
       await SecureStore.setItemAsync("email", e);
       await SecureStore.setItemAsync("password", p);
     }
+
+    await ensureUserProfile(e);
+
     await hydrateAndGo(e);
   };
 
