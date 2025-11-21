@@ -65,19 +65,24 @@ export default function DiaryPage() {
         setRecords(updatedRecords);
       } catch (err: any) {
         Alert.alert("Error", "Registration failed");
-        console.error(err instanceof Error ? err.message : "Resetting password failed");
+        console.error(
+          err instanceof Error ? err.message : "Resetting password failed"
+        );
       }
     }
-  }
+  };
 
   const onSave = async () => {
-    if(!canSave) return;
-    if(!profile) return;
+    console.log("Attempting to save diary entry...", canSave, profile);
+    if (!canSave) return;
+    if (!profile) return;
 
     const newDiaryRecord = {
       user_email: profile.email,
       body: text,
     };
+
+    console.log("Saving new diary record:", newDiaryRecord);
 
     try {
       // Insert diary and get inserted diary id
@@ -87,17 +92,16 @@ export default function DiaryPage() {
         .select("id")
         .single();
 
-      if (diaryErr || !diary) throw diaryErr ?? new Error("Failed to create diary");
+      if (diaryErr || !diary)
+        throw diaryErr ?? new Error("Failed to create diary");
 
       // Insert mood_log with mood=null and diary_id set to the new diary's id
-      const { error: moodErr } = await supabase
-        .from("mood_log")
-        .insert({
-          user_email: profile.email,
-          mood: null,
-          diary_id: diary.id,
-          date: new Date().toISOString(),
-        });
+      const { error: moodErr } = await supabase.from("mood_log").insert({
+        user_email: profile.email,
+        mood: null,
+        diary_id: diary.id,
+        date: new Date().toISOString(),
+      });
 
       if (moodErr) throw moodErr;
 
@@ -114,8 +118,8 @@ export default function DiaryPage() {
     }
 
     Keyboard.dismiss();
-  }
-  
+  };
+
   // const onSave = async () => {
   //   if (!canSave) return;
   //   // Add new Diary Record to database
@@ -155,7 +159,10 @@ export default function DiaryPage() {
               multiline
               scrollEnabled
               value={text}
-              onChangeText={setText}
+              onChangeText={(val) => {
+                if (val.length > MAX_LEN) val = val.slice(0, MAX_LEN);
+                setText(val);
+              }}
               placeholder={placeholder}
               placeholderTextColor="rgba(0,0,0,0.35)"
               textAlignVertical="top"

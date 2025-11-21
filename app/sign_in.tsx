@@ -1,6 +1,7 @@
 import { useUserContext } from "@/context/authContext";
 import { getDiaryByEmail } from "@/lib/diary_crud";
 import { getRecordsByEmail } from "@/lib/mood_crud";
+import { supabase } from "@/lib/supabase";
 import { forgotPassword, signUp } from "@/lib/supabase_auth";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
@@ -28,6 +29,8 @@ export default function SignIn() {
   const [isSignIn, setIsSignIn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
   const router = useRouter();
 
   useEffect(() => {
@@ -46,15 +49,66 @@ export default function SignIn() {
     checkSaved();
   }, []);
 
+  const hasCompletedQuestionnaire = async (email: string) => {
+    const { data, error } = await supabase
+      .from("questionnaire_log")
+      .select("id")
+      .eq("user_email", email);
+
+    if (error) {
+      console.warn("Questionnaire check failed:", error.message);
+      return false;
+    }
+
+    console.log("Questionnaire check for:", email, "→", data);
+    // If zero valid rows → they haven't filled it out
+    return data && data.length > 0;
+  };
+
+  const ensureUserProfile = async (email: string) => {
+    const { data, error } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("email", email)
+      .maybeSingle();
+
+    if (!data) {
+      await supabase.from("user_profiles").insert({
+        email,
+        first_name: "",
+        last_name: "",
+        phone: "",
+        birth_date: null,
+        country: "",
+        icon_name: "avatar1", // default avatar
+        depression: null,
+        anxiety: null,
+        overall: null,
+        checked_in_at: null,
+      });
+    }
+  };
+
   const hydrateAndGo = async (userEmail: string) => {
+    // --- NEW PART: questionnaire check ---
+    const completed = await hasCompletedQuestionnaire(userEmail);
+
     const profileData = await getUserByEmail(userEmail);
     setProfile(profileData);
     const moodData = await getRecordsByEmail(userEmail);
     setRecords(moodData);
     const diaryData = await getDiaryByEmail(userEmail);
     setDiaryRecords(diaryData);
-    router.replace("/(tabs)");
-    router.dismissAll();
+
+    // Otherwise go to main tabs
+    if (!completed) {
+      router.replace("/(questionnaire)");
+      // router.dismissAll();
+      // return;
+    } else {
+      router.replace("/(tabs)");
+      router.dismissAll();
+    }
   };
 
   const doLogin = async (e: string, p: string) => {
@@ -63,6 +117,9 @@ export default function SignIn() {
       await SecureStore.setItemAsync("email", e);
       await SecureStore.setItemAsync("password", p);
     }
+
+    await ensureUserProfile(e);
+
     await hydrateAndGo(e);
   };
 
@@ -82,7 +139,11 @@ export default function SignIn() {
         await doLogin(email, password);
       } else {
         await signUp(email, password);
-        await doLogin(email, password);
+        // after sign up, redirect to login panel
+        setIsSignIn(true);
+        setError(
+          "Account created. Please verify your email before signing in."
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Authentication failed");
@@ -90,7 +151,6 @@ export default function SignIn() {
       setLoading(false);
     }
   };
-
   const handleForgot = async () => {
     if (!email) {
       setError("Enter your email first");
@@ -132,24 +192,46 @@ export default function SignIn() {
               placeholderTextColor="#9CA3AF"
             />
 
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              placeholderTextColor="#9CA3AF"
-            />
-
-            {!isSignIn && (
+            <View style={[styles.inputWrapper]}>
               <TextInput
-                style={styles.input}
-                placeholder="Confirm password"
-                value={confirm}
-                onChangeText={setConfirm}
-                secureTextEntry
+                style={styles.inputField}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
                 placeholderTextColor="#9CA3AF"
               />
+              <TouchableOpacity
+                onPress={() => setShowPassword(!showPassword)}
+                style={styles.toggleButton}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.toggleText}>
+                  {showPassword ? "Hide" : "Show"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {!isSignIn && (
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Confirm password"
+                  value={confirm}
+                  onChangeText={setConfirm}
+                  secureTextEntry={!showPassword}
+                  placeholderTextColor="#9CA3AF"
+                />
+                <TouchableOpacity
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.toggleButton}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Text style={styles.toggleText}>
+                    {showPassword ? "Hide" : "Show"}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
 
             <TouchableOpacity
@@ -190,9 +272,10 @@ export default function SignIn() {
               }}
             >
               <Text style={styles.secondaryText}>
-                {isSignIn
-                  ? "Need an account?  Sign Up"
-                  : "Have an account?  Sign In"}
+                {isSignIn ? "Need an account? " : "Have an account? "}
+                <Text style={styles.highlightText}>
+                  {isSignIn ? "Sign Up" : "Sign In"}
+                </Text>
               </Text>
             </TouchableOpacity>
           </View>
@@ -272,5 +355,43 @@ const styles = StyleSheet.create({
     borderColor: "#ACD1C9",
   },
   secondaryButton: { marginTop: 10, alignItems: "center" },
-  secondaryText: { color: "#6B7280", fontSize: 14 },
+  toggleButton: {
+    position: "absolute",
+    right: 14,
+    top: "50%",
+    transform: [{ translateY: -10 }], // keeps the text vertically centered
+  },
+  toggleText: {
+    fontSize: 14,
+    color: "#0284c7",
+    fontWeight: "500",
+    fontFamily: "Noto Sans HK",
+  },
+  inputField: {
+    height: 50,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    backgroundColor: "#FAFAFA",
+    fontSize: 16,
+    color: "#111827",
+    paddingRight: 55,
+  },
+  secondaryText: {
+    color: "#6B7280",
+    fontSize: 14,
+    textAlign: "center",
+    fontFamily: "Noto Sans HK",
+  },
+  highlightText: {
+    color: "#0284c7",
+    fontWeight: "500",
+    fontFamily: "Noto Sans HK",
+  },
+  inputWrapper: {
+    position: "relative",
+    width: "100%",
+    marginBottom: 18, // previously 15
+  },
 });
