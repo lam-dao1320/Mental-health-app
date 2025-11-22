@@ -93,12 +93,6 @@ export default function SignIn() {
     // --- NEW PART: questionnaire check ---
     const completed = await hasCompletedQuestionnaire(userEmail);
 
-    if (!completed) {
-      router.replace("/(questionnaire)");
-      router.dismissAll();
-      return;
-    }
-
     const profileData = await getUserByEmail(userEmail);
     setProfile(profileData);
     const moodData = await getRecordsByEmail(userEmail);
@@ -107,8 +101,14 @@ export default function SignIn() {
     setDiaryRecords(diaryData);
 
     // Otherwise go to main tabs
-    router.replace("/(tabs)");
-    router.dismissAll();
+    if (!completed) {
+      router.replace("/(questionnaire)");
+      // router.dismissAll();
+      // return;
+    } else {
+      router.replace("/(tabs)");
+      router.dismissAll();
+    }
   };
 
   const doLogin = async (e: string, p: string) => {

@@ -15,7 +15,7 @@ export const activitiesSchema = {
     },
     activities: {
       type: Type.ARRAY,
-      description: 'A list of 5 specific activities within the chosen category.',
+      description: 'A list of 3 specific activities within the chosen category.',
       items: {
         type: Type.OBJECT,
         properties: {
@@ -42,6 +42,10 @@ export const activitiesSchema = {
 export const plansSchema = {
   type: Type.OBJECT,
   properties: {
+    chosen_type: { 
+      type: Type.STRING,
+      description: 'The single activity type chosen from the list (e.g., "Nature/Movement", "Social/Reset").',
+    },
     plan_activities: {
       type: Type.ARRAY,
       description: 'A list of three holistic, high-impact activities for stress reduction.',
@@ -69,5 +73,5 @@ export const plansSchema = {
       },
     },
   },
-  required: ['plan_activities'],
+  required: ['chosen_type', 'plan_activities'],
 };

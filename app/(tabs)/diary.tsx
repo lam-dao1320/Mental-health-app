@@ -81,6 +81,8 @@ export default function DiaryPage() {
       body: text,
     };
 
+    console.log("Saving new diary record:", newDiaryRecord);
+
     try {
       // Insert diary and get inserted diary id
       const { data: diary, error: diaryErr } = await supabase

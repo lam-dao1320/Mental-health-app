@@ -3,9 +3,10 @@ import { activitiesSchema, activityAI, planAI, plansSchema } from "./geminiAI";
 export async function suggestActivities(status: string) {
     // Construct the prompt for the AI model
     const prompt = 
-       `${status}. You are an AI Wellness Coach.
+       `${status}. 
+        You are an AI Wellness Coach.
         Your goal is to first **select the single most suitable category** of stress-relief activity for the user's current status, given they have 30 minutes, are at their desk, and needs a non-disruptive activity.
-        Then, list 5 specific activities that fit this single chosen category. 
+        Then, list 3 specific activities that fit this single chosen category. 
         For each activity, provide its **name**, brief instructions, and a helpful resource link.`;
 
     // console.log("AI Activity Suggestion Prompt:\n", prompt);
@@ -48,23 +49,25 @@ const SCORING_GUIDE = `
 export async function suggestPlans(profile: any) {
     // Construct the dynamic part of the prompt
     const prompt = `
-        Generate a self-managed action plan consisting of **FIVE (5)** high-impact activities.
-        
-        Use the following five activity types exactly once:
+        Based on the user's current scores:
+        - Depression: ${profile.depression}
+        - Anxiety: ${profile.anxiety}
+        - Overall Wellness: ${profile.overall}
+
+        You are an AI Wellness Coach generating a self-managed action plan.
+
+        **CRITICAL TASK:** Select the single most suitable activity type from the list below to best address the user's wellness scores, and then generate a plan consisting of **THREE (3)** high-impact activities related *only* to that chosen type.
+
+        Activity Type Options (Choose exactly one):
         1. **Nature/Movement**
         2. **Mind/Creative**
         3. **Social/Reset**
         4. **Skill Acquisition** (Suggest learning a small, engaging skill)
         5. **Digital Detox/Focus** (Suggest an activity to disconnect from technology)
 
-        The plan should address the user's current scores:
-        - Depression: ${profile.depression}
-        - Anxiety: ${profile.anxiety}
-        - Overall Wellness: ${profile.overall}
-
         The activities suggested (e.g., 'traveling', 'camping', 'pottery') must be holistic experiences that require planning.
 
-        **CRITICAL INSTRUCTION:** For each of the five activities, include a 2-3 sentence description in the 'details' field explaining what the activity involves and how to get started. Ensure the output strictly follows the provided JSON schema.
+        **CRITICAL INSTRUCTION:** For each of the three activities, include a 2-3 sentence description in the 'details' field explaining what the activity involves and how it addresses the user's scores. Ensure the output strictly follows the provided JSON schema.
     `;
     
     // console.log("AI Plan Suggestion Prompt:\n", prompt);

@@ -1,7 +1,9 @@
 import ActivitySuggestion from "@/components/suggestion/activity";
 import AIDisclaimerModal from "@/components/suggestion/disclaimer";
+import PlanSuggestion from "@/components/suggestion/plan";
 import { useUserContext } from "@/context/authContext";
-import { suggestActivities } from "@/lib/geminiAI_func";
+import { getDiaryByEmail } from "@/lib/diary_crud";
+import { suggestActivities, suggestPlans } from "@/lib/geminiAI_func";
 import { getRecordsByEmail } from "@/lib/mood_crud";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
@@ -23,16 +25,31 @@ export default function SuggestPage() {
   const [activitySuggestion, setActivitySuggestion] = useState<any | null>(
     null
   );
+  const [planSuggestion, setPlanSuggestion] = useState<any | null>(
+    null
+  );
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [aiConsent, setAiConsent] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
+      let data = Array<any>([]);
       const loadData = async () => {
         if (profile) {
           try {
             const moodData = await getRecordsByEmail(profile.email);
-            setData(moodData[0]);
+            const diaryData = await getDiaryByEmail(profile.email);
+            // console.log("Fetched diary records:", diaryData);
+            // console.log("Fetched mood records:", moodData);
+
+            let diaryIds = new Set(moodData?.map((m: any) => m.diary.id));
+            const filteredDiary = diaryData?.filter((d: any) => !diaryIds.has(d.id));
+            // console.log("Filtered diary records (unlinked):", filteredDiary);
+            data = [...moodData, ...filteredDiary].sort(
+              (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            // console.log("Merged and sorted records:", data);
+            setData(data);
           } catch (error) {
             setError("Error loading mood records: " + error);
           }
@@ -46,19 +63,31 @@ export default function SuggestPage() {
     }, [profile])
   );
 
-  const status = (data: any) => {
+  const status = (data: Array<any>) => {
+    // console.log("Generating status from data:", data);
     if (!data) return "";
     let status = "Now, I live in Canada.";
     if (profile?.country) status += ` I'm from ${profile.country}.`;
-    const d = new Date(data.date);
-    const recordDate = d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+
+    // Build history from records
+    let history = "";
+    data.forEach((entry) => {
+      const d = new Date(entry.date);
+      const recordDate = d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      if (entry.diary)
+        history += `On ${recordDate}, I'm feeling ${entry.mood} because ${entry.diary.body}. `
+      else
+        if (entry.mood)
+          history += `On ${recordDate}, I'm feeling ${entry.mood}. `
+        else
+          history += `On ${recordDate}, I wrote a diary entry (${entry.body}). `;
     });
-    if (data.diary)
-      return `${status} I'm feeling ${data.mood} (Recorded on ${recordDate}) because ${data.diary.body}`;
-    return `${status} I'm feeling ${data.mood} (Recorded on ${recordDate})`;
+
+    return status + " " + history;
   };
 
   const handleActivitySuggestion = async () => {
@@ -73,8 +102,14 @@ export default function SuggestPage() {
         setError("Please log your mood first!");
         return;
       }
-      const aiResponse = await suggestActivities(status(data));
-      setActivitySuggestion(JSON.parse(aiResponse));
+      // console.log("Fetching AI suggestions with status:", status(data));
+      const aiActivityResponse = await suggestActivities(status(data));
+      setActivitySuggestion(JSON.parse(aiActivityResponse));
+      // console.log("AI Activity Suggestion Response:", aiActivityResponse);
+
+      const aiPlanResponse = await suggestPlans(profile);
+      setPlanSuggestion(JSON.parse(aiPlanResponse));
+      // console.log("AI Plan Suggestion Response:", aiPlanResponse);
     } catch (error) {
       setError("Error fetching AI suggestions: " + error);
     } finally {
@@ -93,21 +128,29 @@ export default function SuggestPage() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.section}>
-          <View style={styles.outputBox}>
-            {!activitySuggestion ? (
+          {!activitySuggestion && !planSuggestion && (
+            <View style={[styles.outputBox, styles.aiBox]}>
               <Text style={styles.placeholder}>
                 🌿 Hey there! AI suggests small activities based on your most
                 recent mood entry.
               </Text>
-            ) : (
+            </View>
+          )}
+          {activitySuggestion && 
+            <View style={[styles.outputBox, styles.activityBox]}>
               <ActivitySuggestion data={activitySuggestion} />
-            )}
-          </View>
+            </View>
+          }
+          {planSuggestion &&
+            <View style={[styles.outputBox, styles.planBox]}>
+              <PlanSuggestion data={planSuggestion} />
+            </View>
+          }
 
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: aiConsent ? "#F49790" : "#BDBDBD" },
+              { backgroundColor: aiConsent ? "#84B4FF" : "#BDBDBD" },
               (activityLoading || !aiConsent) && styles.disabled,
             ]}
             onPress={handleActivitySuggestion}
@@ -118,7 +161,7 @@ export default function SuggestPage() {
             ) : (
               <Text style={styles.buttonText}>
                 {aiConsent
-                  ? "Get Activity Suggestion"
+                  ? "Get AI Suggestion"
                   : "AI Disabled (View Disclaimer)"}
               </Text>
             )}
@@ -176,13 +219,10 @@ const styles = StyleSheet.create({
   section: { width: "100%", alignItems: "center" },
   outputBox: {
     width: "100%",
-    minHeight: 120,
-    backgroundColor: "#FFF5F7",
+    minHeight: 100,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F4C6C3",
+    borderWidth: 1,    
     marginBottom: 18,
-    padding: 16,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -190,6 +230,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+  },
+  aiBox:{
+    borderColor: "#a7bfe7ff",
+    backgroundColor: "#e5efffff",
+    padding: 16,
+  },
+  activityBox: {
+    borderColor: "#F4C6C3",
+    backgroundColor: "#FFF5F7",
+    padding: 5,
+  },
+  planBox: {
+    borderColor: "#98c9bdff",
+    backgroundColor: "#f4fffcff",
+    padding: 5,
   },
   placeholder: {
     textAlign: "center",
