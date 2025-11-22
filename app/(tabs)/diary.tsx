@@ -73,7 +73,6 @@ export default function DiaryPage() {
   };
 
   const onSave = async () => {
-    console.log("Attempting to save diary entry...", canSave, profile);
     if (!canSave) return;
     if (!profile) return;
 

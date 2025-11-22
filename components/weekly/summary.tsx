@@ -1,8 +1,64 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function WeeklySummary({ summary }: { summary: any }) {
+interface MoodLog {
+  emoji: string;
+  mood_score?: number; // numeric score from Supabase (e.g. -2 to +2)
+  overall?: number; // if your table uses 'overall' instead of 'mood_score'
+  dayOfWeek: number; // 0 = Sunday ... 6 = Saturday
+  created_at?: string; // date from Supabase
+}
+
+interface WeeklySummaryProps {
+  summary: {
+    topMood: string;
+    emoji: string;
+    topDay?: string;
+    streak?: number;
+    data?: MoodLog[];
+  };
+}
+
+export default function WeeklySummary({ summary }: WeeklySummaryProps) {
   if (!summary) return null;
+
+  const { data } = summary;
+
+  // compute happiest day using numeric mood score from Supabase
+  const getHappiestDay = () => {
+    if (!data || data.length === 0) return summary.topDay || "No data";
+
+    const moodScores: Record<number, { total: number; date: string }> = {};
+
+    data.forEach((log) => {
+      const score = log.mood_score ?? log.overall ?? 0;
+      const dayKey = log.dayOfWeek;
+
+      const date = log.created_at ? new Date(log.created_at) : new Date();
+      const formattedDate = date.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }); // e.g. Monday, Nov 4, 2025
+
+      if (!moodScores[dayKey]) {
+        moodScores[dayKey] = { total: score, date: formattedDate };
+      } else {
+        moodScores[dayKey].total += score;
+      }
+    });
+
+    const bestDay = Object.entries(moodScores).sort(
+      (a, b) => b[1].total - a[1].total
+    )[0];
+
+    if (!bestDay) return summary.topDay || "No data";
+    return moodScores[parseInt(bestDay[0])].date;
+  };
+
+  // 🟢 FIX: call the function so it actually runs
+  const happiestDay = getHappiestDay();
 
   return (
     <View style={s.card}>
@@ -15,13 +71,15 @@ export default function WeeklySummary({ summary }: { summary: any }) {
       </Text>
 
       <Text style={s.line}>
-        Your best day was <Text style={s.highlight}>{summary.topDay}</Text>.
+        Your happiest day was <Text style={s.highlight}>{happiestDay}</Text>.
       </Text>
 
-      <Text style={s.line}>
-        You kept a <Text style={s.highlight}>{summary.streak}-day</Text> streak
-        of positive moods
-      </Text>
+      {summary.streak && (
+        <Text style={s.line}>
+          You kept a <Text style={s.highlight}>{summary.streak}-day</Text>{" "}
+          streak of positive moods.
+        </Text>
+      )}
     </View>
   );
 }

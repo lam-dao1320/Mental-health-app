@@ -1,9 +1,12 @@
-// app/(tabs)/settings.tsx  or  app/settings.tsx
-import { useUserContext } from "@/context/authContext";
+import { avatarMap, defaultAvatar } from "@/constants/avatars";
+import { supabase } from "@/lib/supabase";
+import { UserProfile } from "@/lib/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useCallback, useState } from "react";
 import {
+  Alert,
   Image,
   Pressable,
   ScrollView,
@@ -18,7 +21,6 @@ const Colors = {
   text: "#1D1D1F",
   sub: "#6B7280",
   border: "rgba(0,0,0,0.06)",
-  // brand accents
   mint: "#ACD1C9",
   peach: "#F4CA90",
   salmon: "#F49790",
@@ -27,8 +29,51 @@ const Colors = {
 };
 
 export default function SettingsScreen() {
-  const { profile } = useUserContext();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [imageError, setImageError] = useState(false);
   const router = useRouter();
+
+  // ✅ Function to load profile from Supabase
+  const fetchProfile = async () => {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_profiles") // make sure table name matches
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    }
+  };
+
+  // ✅ Run fetchProfile every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
+
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      setProfile(null);
+      Alert.alert("Logged Out", "You have been signed out successfully.");
+      router.replace("/sign_in");
+    } catch (err: any) {
+      Alert.alert("Logout Failed", err.message || "Please try again later.");
+    }
+  };
 
   return (
     <ScrollView
@@ -37,19 +82,22 @@ export default function SettingsScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.screen}>
+        {/* Profile Section */}
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
-            source={{
-              uri: "https://media.istockphoto.com/id/1300845620/vector/user-icon-flat-isolated-on-white-background-user-symbol-vector-illustration.jpg?s=612x612&w=0&k=20&c=yBeyba0hUkh14_jgv1OKqIH0CCSWU_4ckRkAoy2p73o=",
-            }}
+            source={avatarMap[profile?.icon_name || ""] || defaultAvatar}
             style={styles.avatar}
+            onError={() => setImageError(true)}
           />
-          <Text style={styles.name}>
-            {profile?.first_name} {profile?.last_name}
-          </Text>
-          <Text style={styles.email}>{profile?.email}</Text>
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.name}>
+              {profile?.first_name} {profile?.last_name}
+            </Text>
+            <Text style={styles.email}>{profile?.email}</Text>
+          </View>
         </View>
 
+        {/* Profile + Badge */}
         <View style={[styles.card, styles.shadow]}>
           <SectionRow
             chipBg="#EAF6F2"
@@ -67,6 +115,7 @@ export default function SettingsScreen() {
           />
         </View>
 
+        {/* Security + Privacy */}
         <View style={[styles.card, styles.shadow]}>
           <SectionRow
             chipBg="#FFF7E9"
@@ -76,14 +125,6 @@ export default function SettingsScreen() {
             onPress={() => router.push("/setting/PasswordAndSecurity")}
           />
           <Divider />
-          {/* <SectionRow
-            chipBg="#FFF3F1"
-            iconColor={Colors.salmon}
-            icon="apps"
-            label="App and services"
-            onPress={() => router.push("/")}
-          /> */}
-          <Divider />
           <SectionRow
             chipBg="#EAF6F2"
             iconColor={Colors.mint}
@@ -91,15 +132,9 @@ export default function SettingsScreen() {
             label="Privacy"
             onPress={() => router.push("/setting/Privacy")}
           />
-          {/* <SectionRow
-            chipBg="#FCFAE1"
-            iconColor={Colors.peach}
-            icon="phone-portrait"
-            label="Devices"
-            onPress={() => router.push("/")}
-          /> */}
         </View>
 
+        {/* Notifications + Help + About */}
         <View style={[styles.card, styles.shadow]}>
           <SectionRow
             chipBg="#FFF7E9"
@@ -125,24 +160,23 @@ export default function SettingsScreen() {
             onPress={() => router.push("/setting/About")}
           />
         </View>
+
+        {/* Logout Button */}
+        <Pressable style={styles.logoutBtn} onPress={handleLogout} hitSlop={8}>
+          <Ionicons
+            name="log-out-outline"
+            size={20}
+            color="white"
+            style={{ marginRight: 8 }}
+          />
+          <Text style={styles.logoutText}>Log Out</Text>
+        </Pressable>
       </View>
     </ScrollView>
   );
 }
 
-function SectionRow({
-  icon,
-  label,
-  onPress,
-  chipBg,
-  iconColor,
-}: {
-  icon: React.ComponentProps<typeof Ionicons>["name"];
-  label: string;
-  onPress: () => void;
-  chipBg: string;
-  iconColor: string;
-}) {
+function SectionRow({ icon, label, onPress, chipBg, iconColor }: any) {
   return (
     <Pressable
       onPress={onPress}
@@ -165,7 +199,6 @@ function Divider() {
 const styles = StyleSheet.create({
   container: { paddingBottom: 32 },
   screen: { flex: 1, padding: 16, backgroundColor: Colors.bg },
-
   profileCard: {
     alignItems: "center",
     paddingVertical: 22,
@@ -188,7 +221,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: "Noto Sans HK",
   },
-
   card: {
     borderRadius: 20,
     backgroundColor: Colors.card,
@@ -198,13 +230,27 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-
   shadow: {
     shadowColor: "#000",
     shadowOpacity: 0.06,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
+  },
+  logoutBtn: {
+    flexDirection: "row",
+    backgroundColor: Colors.salmon,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  logoutText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+    fontFamily: "Noto Sans HK",
   },
 });
 

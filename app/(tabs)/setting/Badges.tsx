@@ -1,7 +1,18 @@
 import { useUserContext } from "@/context/authContext";
-import { checkMoodBadges, checkQuestionnaireBadges, fetchAllBadges } from "@/lib/log_crud";
+import {
+  checkMoodBadges,
+  checkQuestionnaireBadges,
+  fetchAllBadges,
+} from "@/lib/log_crud";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 const Colors = {
   bg: "#F9F9FB",
@@ -11,7 +22,8 @@ const Colors = {
   border: "rgba(0,0,0,0.06)",
   mint: "#ACD1C9",
   divider: "rgba(0,0,0,0.08)",
-  gray: "#D1D5DB", // 🆕 Added gray color for disabled badges
+  overlay: "rgba(255,255,255,0.6)",
+  gray: "#D1D5DB",
 };
 
 export default function BadgesPage() {
@@ -22,61 +34,39 @@ export default function BadgesPage() {
   useEffect(() => {
     if (!profile?.email) return;
 
-    const email = profile?.email;
+    const email = profile.email;
 
     async function loadBadges() {
       setLoading(true);
-
       await checkMoodBadges(email);
       await checkQuestionnaireBadges(email);
-
       const data = await fetchAllBadges(email);
       setBadges(data || []);
-
       setLoading(false);
     }
 
     loadBadges();
   }, [profile?.email]);
 
-  // 🆕 Helper function to check if a user owns a specific badge
   const hasBadge = (type: string, level: string) =>
     badges.some((b) => b.badge_type === type && b.level === level);
 
   type BadgeType = "mood" | "questionnaire";
   type BadgeLevel = "beginner" | "mid" | "advanced";
 
-  // function BadgeIcon({ type, level }: { type: BadgeType; level: BadgeLevel }) {
-  //   const icons: Record<BadgeType, Record<BadgeLevel, any>> = {
-  //     mood: {
-  //       beginner: require("@/assets/images/mood/beginner.png"),
-  //       mid: require("@/assets/images/mindLog_icon.png"),
-  //       advanced: require("@/assets/images/mindLog_icon.png"),
-  //     },
-  //     questionnaire: {
-  //       beginner: require("@/assets/images/mindLog_icon.png"),
-  //       mid: require("@/assets/images/mindLog_icon.png"),
-  //       advanced: require("@/assets/images/mindLog_icon.png"),
-  //     },
-  //   };
-  //   return <Image source={icons[type][level]} style={{ width: 60, height: 60 }} />;
-  // }
-
-  // 🆕 Moved icons into one centralized object
   const badgeIcons: Record<BadgeType, Record<BadgeLevel, any>> = {
     mood: {
       beginner: require("@/assets/images/mood/beginner.png"),
-      mid: require("@/assets/images/mindLog_icon.png"),
-      advanced: require("@/assets/images/mindLog_icon.png"),
+      mid: require("@/assets/images/mood/mid.png"),
+      advanced: require("@/assets/images/mood/advanced.png"),
     },
     questionnaire: {
-      beginner: require("@/assets/images/mindLog_icon.png"),
-      mid: require("@/assets/images/mindLog_icon.png"),
-      advanced: require("@/assets/images/mindLog_icon.png"),
+      beginner: require("@/assets/images/questionnaire/beginner.png"),
+      mid: require("@/assets/images/questionnaire/mid.png"),
+      advanced: require("@/assets/images/questionnaire/advanced.png"),
     },
   };
 
-  // 🆕 User-friendly labels for each badge level
   const badgeLabels: Record<BadgeLevel, string> = {
     beginner: "First Log",
     mid: "1-Week Streak",
@@ -85,37 +75,40 @@ export default function BadgesPage() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#555" />
         <Text>Loading badges...</Text>
       </View>
     );
   }
 
-  // 🆕 Reusable section renderer (used for Mood + Questionnaire)
-  const renderBadgeRow = (type: BadgeType, title: string, description: string) => (
+  const renderBadgeRow = (
+    type: BadgeType,
+    title: string,
+    description: string
+  ) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.sectionDesc}>{description}</Text>
 
-      {/* 🆕 New layout for badges — always show all 3, dim if not earned */}
       <View style={styles.badgeRow}>
         {(["beginner", "mid", "advanced"] as BadgeLevel[]).map((level) => {
           const earned = hasBadge(type, level);
+
           return (
             <View key={`${type}-${level}`} style={styles.badgeContainer}>
-              <Image
-                source={badgeIcons[type][level]}
-                style={[
-                  styles.badgeImage,
-                  !earned && { opacity: 0.3, tintColor: Colors.gray }, // 🆕 Disabled style
-                ]}
-              />
+              <View style={styles.badgeWrapper}>
+                <Image
+                  source={badgeIcons[type][level]}
+                  style={[styles.badgeImage, !earned && { opacity: 0.5 }]}
+                />
+                {!earned && (
+                  <View style={styles.grayOverlay} pointerEvents="none" />
+                )}
+              </View>
+
               <Text
-                style={[
-                  styles.badgeLabel,
-                  !earned && { color: Colors.sub }, // 🆕 Gray label when not earned
-                ]}
+                style={[styles.badgeLabel, !earned && { color: Colors.sub }]}
               >
                 {badgeLabels[level]}
               </Text>
@@ -126,33 +119,66 @@ export default function BadgesPage() {
     </View>
   );
 
-  return (
-    // 🆕 ScrollView instead of FlatList, vertical stacking for two sections
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Your Badges 🏅</Text>
+  const renderOneTimeSection = () => {
+    const oneTimeTasks = [
+      "First Login",
+      "First Mood Entry",
+      "First Suggestion Click",
+      "First Diary Edit",
+      "First Data Download",
+      "First Badge Earned",
+    ];
 
-      {/* 🆕 Section 1 – Mood badges */}
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>One-Time Tasks</Text>
+        <Text style={styles.sectionDesc}>
+          Preview of unique achievements. These will unlock as you use the app.
+        </Text>
+
+        <View style={styles.badgeRow}>
+          {oneTimeTasks.map((label, index) => (
+            <View key={index} style={styles.badgeContainer}>
+              <View
+                style={[
+                  styles.circlePlaceholder,
+                  { backgroundColor: Colors.gray },
+                ]}
+              />
+              <Text style={[styles.badgeLabel, { color: Colors.sub }]}>
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
+      <Text style={styles.title}>Your Badges</Text>
       {renderBadgeRow(
         "mood",
         "Mood Tracker Badges",
         "Earn badges for consistently logging your moods!"
       )}
-
-      {/* 🆕 Divider between sections */}
       <View style={styles.divider} />
-
-      {/* 🆕 Section 2 – Questionnaire badges */}
       {renderBadgeRow(
         "questionnaire",
         "Questionnaire Badges",
         "Track your growth through daily reflections!"
       )}
+      <View style={styles.divider} />
+      {renderOneTimeSection()}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  // 🆕 Updated layout & styling for the new card-style sections
   container: {
     flex: 1,
     backgroundColor: Colors.bg,
@@ -172,8 +198,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     fontFamily: "Noto Sans HK",
-    marginTop: 6,
-    paddingTop: 10,
   },
   section: {
     backgroundColor: Colors.card,
@@ -183,7 +207,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -200,25 +223,46 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-around",
+    rowGap: 18,
   },
   badgeContainer: {
     alignItems: "center",
+    width: 90,
   },
-  badgeImage: {
+  badgeWrapper: {
+    position: "relative",
     width: 70,
     height: 70,
-    marginBottom: 8,
+  },
+  badgeImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  grayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.overlay,
+    borderRadius: 8,
   },
   badgeLabel: {
     fontSize: 13,
     color: Colors.text,
     fontFamily: "Noto Sans HK",
     textAlign: "center",
+    marginTop: 6,
   },
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
-    marginVertical: 8,
+    marginVertical: 15,
+  },
+  circlePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 6,
+    backgroundColor: Colors.gray,
   },
 });

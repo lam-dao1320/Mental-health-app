@@ -1,14 +1,14 @@
-"use client";
+// "use client";
 
 import DateTimePickerPage from "@/components/dateTimePicker";
 import { useUserContext } from "@/context/authContext";
 import { getRecordsByEmail } from "@/lib/mood_crud";
 import { supabase } from "@/lib/supabase";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -36,138 +36,125 @@ export default function CardDetails() {
   const [text, setText] = useState("");
   const [showPicker, setShowPicker] = useState(false);
   const [dateTime, setDateTime] = useState(new Date());
-
-  const [diaryRecord, setDiaryRecords] = useState({
-    id: "",
-    date: dateTime,
-    user_email: profile?.email,
-    body: text,
-  });
-  const [moodRecord, setMoodRecord] = useState({
-    id: "",
-    date: dateTime,
-    user_email: profile?.email,
-    mood: "",
-    diary_id: diaryRecord.id,
-  });
+  const [missingRecord, setMissingRecord] = useState<any>(null);
 
   const MAX_LEN = 500;
   const MIN_LEN = 0;
-  const remaining = useMemo(
-    () =>
-      typeof MAX_LEN === "number"
-        ? Math.max(0, MAX_LEN - text.length)
-        : undefined,
-    [text]
-  );
-  const tooShort = text.trim().length < MIN_LEN;
-  const overMax = typeof MAX_LEN === "number" && text.length > MAX_LEN;
-  const canSave = !tooShort && !overMax && text.trim().length > 0;
+
+  const remaining = useMemo(() => Math.max(0, MAX_LEN - text.length), [text]);
+
+  const canSave = text.trim().length > MIN_LEN && text.length <= MAX_LEN;
 
   const placeholder =
     "Write a few lines about today...\n• What happened?\n• How did it feel?\n• Anything to remember tomorrow?";
 
-  // Fetch the latest records
+  // ---- Fetch records from context or Supabase ----
   const fetchDiary = async () => {
     if (!profile?.email) return;
-
     try {
       const updatedRecords = await getRecordsByEmail(profile.email);
-
-      // Optional: if you store records in context and want to update them:
       setRecords(updatedRecords);
-
       console.log("Fetched latest diary records:", updatedRecords);
       return updatedRecords;
     } catch (err: any) {
       console.error("Error fetching diary:", err);
       Alert.alert("Error", err.message || "Failed to fetch diary records.");
-      return [];
     }
   };
 
-  // find the right record by id
-  const record = useMemo(
-    () => records.find((item) => String(item.id) === String(id)),
-    [id, records]
-  );
+  // console.log("🧩 All records:", records);
+  // console.log("🔍 Looking for id:", id);
 
-  const dateFormat = (date?: Date | null) => {
-    if (!date) return "";
-    const dateObj = new Date(date);
-    const day = dateObj.getDate();
-    const month = dateObj.toLocaleString("en-US", { month: "short" });
-    const year = dateObj.getFullYear();
-    const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
-    // console.log(dateObj.toISOString());
-    return `${day} ${month} ${year} (${weekday})`;
-  };
-
-  if (!record) {
-    return (
-      <View style={s.container}>
-        <Text style={s.header}>Come back later!</Text>
-        <Text style={s.body}>We can't find your diary log.</Text>
-      </View>
+  // ---- Find record in context ----
+  const record: any = useMemo(() => {
+    return records.find(
+      (item: any) =>
+        String(item.id) === String(id) || String(item.diary_id) === String(id)
     );
-  }
+  }, [id, records]);
 
-  const headerText = record.mood
-    ? record.mood + emojiForMood(record.mood)
-    : "No mood selected 😶";
-
-  // Use diary body if available, else fallback
+  // ---- Fetch standalone diary if not found ----
   useEffect(() => {
-    if (record) {
-      setText(record.diary?.body ?? "(no diary written)");
+    const fetchMissing = async () => {
+      if (!record && id) {
+        // fetch the diary
+        const { data, error } = await supabase
+          .from("diary")
+          .select("id, user_email, body, date")
+          .eq("id", id)
+          .single();
 
-      const dateValue = record.diary?.date ?? record.date;
-      // only set if it's valid
-      if (dateValue && !isNaN(new Date(dateValue).getTime())) {
-        setDateTime(new Date(dateValue));
-      } else {
-        setDateTime(new Date()); // fallback to today
+        if (error || !data) return;
+
+        // fetch mood linked to that diary
+        const { data: moodData } = await supabase
+          .from("mood_log")
+          .select("mood")
+          .eq("diary_id", data.id)
+          .single();
+
+        setMissingRecord({
+          ...data,
+          mood: moodData?.mood ?? null,
+        });
       }
+    };
+    fetchMissing();
+  }, [record, id]);
 
-      setDiaryRecords({
-        id: record.diary?.id,
-        date: record.date,
-        duser_email: profile?.email,
-        body: record.diary?.body,
-      });
-      setMoodRecord({
-        id: record.id,
-        date: dateTime,
-        user_email: profile?.email,
-        mood: record.mood,
-        diary_id: record.diary?.id,
-      });
-    }
-  }, [record]);
+  const activeRecord = record ?? missingRecord;
+  const isLoading = !activeRecord;
 
-  // ✅ Save or update record safely (supports null diary)
+  const headerText = activeRecord?.mood
+    ? `Mood: ${
+        activeRecord.mood.charAt(0).toUpperCase() +
+        activeRecord.mood.slice(1).toLowerCase()
+      } ${emojiForMood(activeRecord.mood)}`
+    : "Diary";
+
+  const dateFormat = (date?: string | null) => {
+    if (!date) return "";
+    const d = new Date(date);
+    return `${d.getDate()} ${d.toLocaleString("en-US", {
+      month: "short",
+    })} ${d.getFullYear()} (${d.toLocaleString("en-US", {
+      weekday: "short",
+    })})`;
+  };
+
+  // ---- Populate state when record loads ----
+  useEffect(() => {
+    if (!activeRecord) return;
+
+    const diaryBody =
+      (activeRecord as any).diary?.body ||
+      activeRecord.body ||
+      "(no diary written)";
+    const diaryDate =
+      (activeRecord as any).diary?.date || activeRecord.date || new Date();
+
+    setText(diaryBody);
+    setDateTime(new Date(diaryDate));
+  }, [activeRecord]);
+
+  // ---- Save / Update ----
   const onSave = async () => {
-    if (!canSave) return;
-    if (!profile || !record) return;
+    if (!canSave || !profile || !activeRecord) return;
 
     try {
-      // --- 1️⃣ If the diary exists, update it ---
-      if (record.diary?.id) {
-        const updatedDiary = {
-          body: text,
-          date: dateTime.toISOString(),
-          user_email: profile.email,
-        };
-
+      // Update diary
+      if (activeRecord.diary?.id) {
         const { error: diaryErr } = await supabase
           .from("diary")
-          .update(updatedDiary)
-          .eq("id", record.diary.id);
-
+          .update({
+            body: text,
+            date: dateTime.toISOString(),
+            user_email: profile.email,
+          })
+          .eq("id", activeRecord.diary.id);
         if (diaryErr) throw diaryErr;
-      }
-      // --- 2️⃣ If no diary exists but text is present, create one ---
-      else if (text.trim().length > 0) {
+      } else if (text.trim().length > 0) {
+        // Create new diary
         const { data: newDiary, error: newDiaryErr } = await supabase
           .from("diary")
           .insert({
@@ -177,47 +164,43 @@ export default function CardDetails() {
           })
           .select("id")
           .single();
-
         if (newDiaryErr) throw newDiaryErr;
 
-        // update mood_log to link to new diary
+        // Link mood_log to new diary
         await supabase
           .from("mood_log")
           .update({ diary_id: newDiary.id })
-          .eq("id", record.id);
+          .eq("id", activeRecord.id);
       }
 
-      // --- 3️⃣ Update the mood_log itself (always safe) ---
-      const updatedMoodLog = {
-        mood: record.mood,
-        date: dateTime.toISOString(),
-        user_email: profile.email,
-      };
-
-      const { error: moodErr } = await supabase
-        .from("mood_log")
-        .update(updatedMoodLog)
-        .eq("id", record.id);
-
-      if (moodErr) throw moodErr;
+      // Update mood_log if applicable
+      if (activeRecord.mood) {
+        await supabase
+          .from("mood_log")
+          .update({
+            mood: activeRecord.mood,
+            date: dateTime.toISOString(),
+            user_email: profile.email,
+          })
+          .eq("id", activeRecord.id);
+      }
 
       Alert.alert("Success", "Diary and mood log updated.");
-      Keyboard.dismiss();
-
-      await fetchDiary(); // 🔄 refresh
+      setShowPicker(false);
+      await fetchDiary();
+      router.back();
     } catch (err: any) {
       console.error("Update failed:", err);
       Alert.alert("Error", err.message || "Failed to update record.");
     }
   };
 
-  // ✅ Delete function that safely handles null diary
+  // ---- Delete ----
   const onDelete = async () => {
-    if (!record) return;
-
+    if (!activeRecord) return;
     Alert.alert(
       "Delete Entry",
-      "Are you sure you want to delete this mood log and diary (if exists)? This action cannot be undone.",
+      "Are you sure you want to delete this mood log and diary (if exists)?",
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -225,23 +208,16 @@ export default function CardDetails() {
           style: "destructive",
           onPress: async () => {
             try {
-              // 1️⃣ Delete mood_log first
-              const { error: moodErr } = await supabase
+              await supabase
                 .from("mood_log")
                 .delete()
-                .eq("id", record.id);
-              if (moodErr) throw moodErr;
-
-              // 2️⃣ Delete diary only if exists
-              if (record.diary?.id) {
-                const { error: diaryErr } = await supabase
+                .eq("id", activeRecord.id);
+              if (activeRecord.diary?.id) {
+                await supabase
                   .from("diary")
                   .delete()
-                  .eq("id", record.diary.id);
-                if (diaryErr) throw diaryErr;
+                  .eq("id", activeRecord.diary.id);
               }
-
-              // Safe navigate
               router.back();
             } catch (err: any) {
               console.error("Delete failed:", err);
@@ -253,114 +229,124 @@ export default function CardDetails() {
     );
   };
 
+  // ---- UI ----
   return (
     <KeyboardAvoidingView
       style={{ flex: 1, backgroundColor: "#F9F9FB" }}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <TouchableWithoutFeedback
-        onPress={() => Keyboard.dismiss?.()}
+        onPress={() => setShowPicker(false)}
         accessible={false}
       >
-        <View style={s.container}>
-          <Text style={s.header}>Mood: {headerText}</Text>
-
-          {/* Date Time */}
-          <View style={s.dateTimeContainer}>
-            <Text style={s.date}>{dateFormat(dateTime)}</Text>
-            <Pressable
-              style={s.pillBtn}
-              onPress={() => setShowPicker(true)}
-              hitSlop={8}
-            >
-              <Text style={s.pillBtnText}>CHANGE</Text>
-            </Pressable>
-
-            <Modal
-              animationType="fade"
-              transparent={true}
-              visible={showPicker}
-              onRequestClose={() => setShowPicker(false)}
-            >
-              <Pressable
-                style={s.modalOverlay}
-                onPress={() => setShowPicker(false)}
-              >
-                <DateTimePickerPage
-                  dateTime={dateTime}
-                  setDateTime={(newDate) => setDateTime(newDate)}
-                  onClose={() => setShowPicker(false)}
-                />
-              </Pressable>
-            </Modal>
+        {isLoading ? (
+          <View style={s.container}>
+            <Text style={s.header}>Come back later!</Text>
+            <Text style={s.body}>We can't find your diary log.</Text>
           </View>
+        ) : (
+          <View style={s.container}>
+            <Text style={s.header}>{headerText}</Text>
 
-          {/* Text */}
-          <View style={s.bodyContainer}>
-            <TextInput
-              style={s.body}
-              multiline
-              scrollEnabled
-              value={text}
-              onChangeText={setText}
-              placeholder={placeholder}
-              placeholderTextColor="rgba(0,0,0,0.35)"
-              textAlignVertical="top"
-              autoCorrect
-              autoCapitalize="sentences"
-              returnKeyType="default"
-            />
-            <View style={s.helperRow}>
-              <Text
-                style={[
-                  s.counter,
-                  remaining !== undefined && remaining <= 40
-                    ? s.counterLow
-                    : null,
-                ]}
+            {/* Date section */}
+            <View style={s.dateTimeContainer}>
+              <Text style={s.date}>{dateFormat(dateTime.toISOString())}</Text>
+              <Pressable
+                style={s.pillBtn}
+                onPress={() => setShowPicker(true)}
+                hitSlop={8}
               >
-                {text.length}/{MAX_LEN}
-              </Text>
+                <Text style={s.pillBtnText}>CHANGE</Text>
+              </Pressable>
+
+              {Platform.OS === "ios" && showPicker && (
+                <Modal
+                  animationType="fade"
+                  transparent={true}
+                  visible={showPicker}
+                  onRequestClose={() => setShowPicker(false)}
+                >
+                  <Pressable
+                    style={s.modalOverlay}
+                    onPress={() => setShowPicker(false)}
+                  >
+                    <DateTimePickerPage
+                      dateTime={dateTime}
+                      setDateTime={(newDate) => setDateTime(newDate)}
+                      onClose={() => setShowPicker(false)}
+                    />
+                  </Pressable>
+                </Modal>
+              )}
+
+              {Platform.OS === "android" && showPicker && (
+                <DateTimePicker
+                  value={dateTime}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    setShowPicker(false);
+                    if (selectedDate) setDateTime(selectedDate);
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Text area */}
+            <View style={s.bodyContainer}>
+              <TextInput
+                style={s.body}
+                multiline
+                scrollEnabled
+                value={text}
+                onChangeText={setText}
+                placeholder={placeholder}
+                placeholderTextColor="rgba(0,0,0,0.35)"
+                textAlignVertical="top"
+                autoCorrect
+                autoCapitalize="sentences"
+              />
+              <View style={s.helperRow}>
+                <Text
+                  style={[s.counter, remaining <= 40 ? s.counterLow : null]}
+                >
+                  {text.length}/{MAX_LEN}
+                </Text>
+              </View>
+            </View>
+
+            {/* Buttons */}
+            <View style={s.actions}>
+              <Pressable
+                style={[s.btn, s.btnGhost]}
+                onPress={() => {
+                  setText("");
+                  setShowPicker(false);
+                }}
+              >
+                <Text style={s.btnGhostText}>Clear</Text>
+              </Pressable>
+
+              <Pressable
+                style={({ pressed }) => [
+                  s.btn,
+                  canSave ? s.btnPrimary : s.btnDisabled,
+                  pressed && { opacity: 0.9 },
+                ]}
+                onPress={onSave}
+                disabled={!canSave}
+              >
+                <Text style={s.btnPrimaryText}>Save entry</Text>
+              </Pressable>
+            </View>
+
+            <View style={s.actions}>
+              <Pressable style={[s.btn, s.btnDanger]} onPress={onDelete}>
+                <Text style={s.btnDangerText}>Delete</Text>
+              </Pressable>
             </View>
           </View>
-
-          <View style={s.actions}>
-            <Pressable
-              style={[s.btn, s.btnGhost]}
-              onPress={() => {
-                setText("");
-                Keyboard.dismiss();
-              }}
-              hitSlop={8}
-            >
-              <Text style={s.btnGhostText}>Clear</Text>
-            </Pressable>
-
-            <Pressable
-              style={({ pressed }) => [
-                s.btn,
-                canSave ? s.btnPrimary : s.btnDisabled,
-                pressed && { opacity: 0.9 },
-              ]}
-              onPress={onSave}
-              disabled={!canSave}
-              hitSlop={8}
-            >
-              <Text style={s.btnPrimaryText}>Save entry</Text>
-            </Pressable>
-          </View>
-
-          {/* 🗑️ Delete Button */}
-          <View style={s.actions}>
-            <Pressable
-              style={[s.btn, s.btnDanger]}
-              onPress={onDelete}
-              hitSlop={8}
-            >
-              <Text style={s.btnDangerText}>Delete</Text>
-            </Pressable>
-          </View>
-        </View>
+        )}
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
   );
@@ -387,21 +373,13 @@ const s = StyleSheet.create({
     lineHeight: 22,
     marginHorizontal: 15,
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#444",
-    marginVertical: 8,
-  },
   bodyContainer: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "rgba(0,0,0,0.08)",
     padding: 12,
-    flexDirection: "column",
-    alignSelf: "stretch",
     height: "40%",
-    paddingVertical: 12,
   },
   dateTimeContainer: {
     flexDirection: "row",
@@ -409,11 +387,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     marginBottom: 20,
   },
-  date: {
-    color: "#333",
-    fontSize: 18,
-    marginLeft: 10,
-  },
+  date: { color: "#333", fontSize: 18, marginLeft: 10 },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -434,11 +408,9 @@ const s = StyleSheet.create({
   },
   helperRow: {
     flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    justifyContent: "flex-end",
     paddingHorizontal: 6,
     paddingBottom: 4,
-    marginTop: "auto", // anchor to bottom inside card
   },
   counter: { fontSize: 12, color: "#6B7280", fontFamily: "Noto Sans HK" },
   counterLow: { color: "#EF4444" },
@@ -462,17 +434,13 @@ const s = StyleSheet.create({
     fontWeight: "800",
     fontFamily: "Noto Sans HK",
   },
-
   btnGhost: { backgroundColor: "#FFFFFF", borderColor: "rgba(0,0,0,0.08)" },
   btnGhostText: {
     color: "#1D1D1F",
     fontWeight: "700",
     fontFamily: "Noto Sans HK",
   },
-  btnDanger: {
-    backgroundColor: "#F87171",
-    borderColor: "#F87171",
-  },
+  btnDanger: { backgroundColor: "#F87171", borderColor: "#F87171" },
   btnDangerText: {
     color: "#FFFFFF",
     fontWeight: "800",
