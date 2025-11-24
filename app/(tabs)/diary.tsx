@@ -81,8 +81,6 @@ export default function DiaryPage() {
       body: text,
     };
 
-    console.log("Saving new diary record:", newDiaryRecord);
-
     try {
       // Insert diary and get inserted diary id
       const { data: diary, error: diaryErr } = await supabase
@@ -158,10 +156,7 @@ export default function DiaryPage() {
               multiline
               scrollEnabled
               value={text}
-              onChangeText={(val) => {
-                if (val.length > MAX_LEN) val = val.slice(0, MAX_LEN);
-                setText(val);
-              }}
+              onChangeText={setText}
               placeholder={placeholder}
               placeholderTextColor="rgba(0,0,0,0.35)"
               textAlignVertical="top"

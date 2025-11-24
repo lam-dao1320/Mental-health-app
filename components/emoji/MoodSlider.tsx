@@ -174,105 +174,71 @@ export default function EmojiPage() {
   const handleDiaryToggle = () => setIsOpen(!isOpen);
 
   // ✅ Save diary linked to latest mood
-  // const onSaveDiary = async () => {
-  //   if (!profile) return;
-
-  //   try {
-  //     const cutoff = dateTime.toISOString();
-
-  //     // fetch latest mood by matching with the date time
-  //     const { data: moods, error: moodErr } = await supabase
-  //       .from("mood_log")
-  //       .select("id, date, diary_id")
-  //       .eq("user_email", profile.email)
-  //       .gte("date", cutoff)
-  //       .order("date", { ascending: false })
-  //       .limit(1);
-
-  //     if (moodErr) throw moodErr;
-  //     if (!moods || moods.length === 0) {
-  //       Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
-  //       return;
-  //     }
-
-  //     const latest = moods[0];
-  //     if (latest.diary_id) {
-  //       Alert.alert("Error", "This mood already has a diary linked.");
-  //       return;
-  //     }
-
-  //     // create diary
-  //     const { data: diary, error: diaryErr } = await supabase
-  //       .from("diary")
-  //       .insert({
-  //         user_email: profile.email,
-  //         body: textDiary,
-  //         date: moods[0].date,
-  //       })
-  //       .select("id") // ensure ID is returned
-  //       .single();
-
-  //     if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
-
-  //     // explicitly update mood_log
-  //     const { error: updateErr } = await supabase
-  //       .from("mood_log")
-  //       .update({ diary_id: diary.id })
-  //       .eq("id", latest.id)
-  //       .select("id, diary_id"); // force return, so we can debug
-
-  //     if (updateErr) throw updateErr;
-  //     console.log("✅ mood_log updated:", {
-  //       moodId: latest.id,
-  //       linkedDiaryId: diary.id,
-  //     });
-
-  //     Alert.alert("Success", "Diary linked to recent mood!");
-  //     fetchRecords();
-  //     setTextDiary("");
-  //     setIsOpen(false);
-  //   } catch (err) {
-  //     Alert.alert(
-  //       "Error",
-  //       err instanceof Error ? err.message : "Something went wrong"
-  //     );
-  //     console.error(err);
-  //   }
-  //   setShowPicker(false);
-  // };
-
   const onSaveDiary = async () => {
     if (!profile) return;
 
     try {
-      // Insert diary entry regardless of mood
+      const cutoff = dateTime.toISOString();
+
+      // fetch latest mood by matching with the date time
+      const { data: moods, error: moodErr } = await supabase
+        .from("mood_log")
+        .select("id, date, diary_id")
+        .eq("user_email", profile.email)
+        .eq("date", cutoff)
+        .order("date", { ascending: false })
+        .limit(1);
+
+      if (moodErr) throw moodErr;
+      if (!moods || moods.length === 0) {
+        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
+        return;
+      }
+
+      const latest = moods[0];
+      if (latest.diary_id) {
+        Alert.alert("Error", "This mood already has a diary linked.");
+        return;
+      }
+
+      // create diary
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")
         .insert({
           user_email: profile.email,
           body: textDiary,
-          date: dateTime.toISOString(),
+          date: moods[0].date,
         })
-        .select("*") // return full row for debug
+        .select("id") // ensure ID is returned
         .single();
 
-      if (diaryErr) throw diaryErr;
+      if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
 
-      console.log("✅ Diary created:", diary);
+      // explicitly update mood_log
+      const { error: updateErr } = await supabase
+        .from("mood_log")
+        .update({ diary_id: diary.id })
+        .eq("id", latest.id)
+        .select("id, diary_id"); // force return, so we can debug
 
-      Alert.alert("Success", "Diary saved!");
-      await fetchRecords();
+      if (updateErr) throw updateErr;
+      console.log("✅ mood_log updated:", {
+        moodId: latest.id,
+        linkedDiaryId: diary.id,
+      });
+
+      Alert.alert("Success", "Diary linked to recent mood!");
+      fetchRecords();
       setTextDiary("");
       setIsOpen(false);
     } catch (err) {
-      console.error("❌ Diary insert error:", err);
       Alert.alert(
         "Error",
         err instanceof Error ? err.message : "Something went wrong"
       );
-    } finally {
-      setShowPicker(false);
+      console.error(err);
     }
+    setShowPicker(false);
   };
 
   const handleClose = () => {
