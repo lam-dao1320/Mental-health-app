@@ -10,10 +10,11 @@ import {
 } from "react-native";
 
 export default function ActivitySuggestion(data: any) {
-  console.log("QuickActivitySuggestion received data:", data.data);
+  // console.log("QuickActivitySuggestion received data:", data.data);
   const [selectedActivityName, setSelectedActivityName] = useState<
     string | null
   >(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const toggleDetails = (activityName: string) => {
     setSelectedActivityName((prevName) =>
@@ -56,27 +57,38 @@ export default function ActivitySuggestion(data: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>AI Suggested Activities 🧘</Text>
-      <Text style={styles.subHeader}>{data.data.chosen_category}</Text>
-      <FlatList
-        data={data.data.activities}
-        keyExtractor={(item) => item.name}
-        renderItem={renderActivityItem}
-        extraData={selectedActivityName}
-        scrollEnabled={false} // ✅ fix nested ScrollView bug
-        contentContainerStyle={{ gap: 12 }}
-      />
+      <TouchableOpacity
+        onPress={() => {setShowDetails(!showDetails)}}
+        style={{flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 8 }}
+      >
+        <Text style={styles.header}>AI Suggested Activities 🧘</Text>
+        <Text style={styles.indicator}>{showDetails ? "▲" : "▼"}</Text>
+      </TouchableOpacity>
+      <Text style={[styles.subHeader, showDetails && {marginBottom: 16}]}>{data.data.chosen_category}</Text>
+
+      {showDetails && 
+        <FlatList
+          data={data.data.activities}
+          keyExtractor={(item) => item.name}
+          renderItem={renderActivityItem}
+          extraData={selectedActivityName}
+          scrollEnabled={false} // ✅ fix nested ScrollView bug
+          contentContainerStyle={{ gap: 12 }}
+        />
+      }
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
+    width: 350,
     backgroundColor: "transparent",
-    paddingVertical: 10,
+    padding: 20,
   },
   header: {
+    flex: 1,
+    marginRight: 20,
     fontSize: 22,
     fontWeight: "800",
     color: "#1D1D1F",
@@ -87,7 +99,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#F49790",
     textAlign: "center",
-    marginBottom: 16,
     marginTop: 4,
     fontWeight: "600",
     fontFamily: "Noto Sans HK",

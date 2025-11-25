@@ -8,8 +8,10 @@ import {
   View,
 } from "react-native";
 
-export default function PlanSuggestion(plans: any) {
+export default function PlanSuggestion(data: any) {
+  // console.log("PlanSuggestion received data:", data.data);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [showDetails, setShowDetails] = useState(false);
 
   const toggleDetails = (planName: string) => {
     setSelectedPlan((prevName) => (prevName === planName ? null : planName));
@@ -27,7 +29,6 @@ export default function PlanSuggestion(plans: any) {
         >
           <View style={{ flex: 1 }}>
             <Text style={styles.planName}>{item.name}</Text>
-            <Text style={styles.planType}>{item.type}</Text>
           </View>
           <Text style={styles.indicator}>{isSelected ? "▲" : "▼"}</Text>
         </TouchableOpacity>
@@ -47,14 +48,24 @@ export default function PlanSuggestion(plans: any) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>AI Suggested Wellness Plans 🎯</Text>
+      <TouchableOpacity
+        onPress={() => {setShowDetails(!showDetails)}}
+        style={{flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 8 }}
+      >
+        <Text style={styles.header}>AI Suggested Plans 🎯</Text>
+        <Text style={styles.indicator}>{showDetails ? "▲" : "▼"}</Text>
+      </TouchableOpacity>
+      <Text style={[styles.subHeader, showDetails && {marginBottom: 16}]}>{data.data.chosen_type}</Text>
+      
+      {showDetails &&
       <FlatList
-        data={plans.data.plan_activities}
+        data={data.data.plan_activities}
         keyExtractor={(item) => item.name}
         renderItem={renderPlanItem}
         extraData={selectedPlan}
         scrollEnabled={false}
-      />
+        contentContainerStyle={{ gap: 12 }}
+      />}
     </View>
   );
 }
@@ -62,72 +73,77 @@ export default function PlanSuggestion(plans: any) {
 // --- STYLES ---
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    width: "100%",
-    backgroundColor: "#F9F9FB",
-    paddingVertical: 20,
+    width: 350,
+    backgroundColor: "transparent",
+    padding: 20,
   },
   header: {
+    flex: 1,
+    marginRight: 20,
+    alignContent: "flex-start",
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "800",
     color: "#1D1D1F",
-    marginBottom: 18,
     textAlign: "center",
+    fontFamily: "Noto Sans HK",
+  },
+  subHeader: {
+    fontSize: 15,
+    color: "#98c9bdff",
+    textAlign: "center",
+    marginTop: 4,
+    fontWeight: "600",
     fontFamily: "Noto Sans HK",
   },
   card: {
     backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    marginBottom: 14,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.05)",
     shadowColor: "#000",
+    shadowOpacity: 0.05,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 5,
+    elevation: 2,
   },
   cardExpanded: {
-    backgroundColor: "#FDFCF7",
+    backgroundColor: "#f4fffcff",
+    borderColor: "#98c9bdff",
   },
   cardHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 16,
-    paddingHorizontal: 18,
-    borderBottomColor: "#EAEAEA",
+    alignItems: "center",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
   planName: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#007AFF",
-    fontFamily: "Noto Sans HK",
-  },
-  planType: {
-    fontSize: 13,
-    color: "#6B7280",
-    fontWeight: "500",
-    marginTop: 2,
+    color: "#1D1D1F",
+    flex: 1,
+    marginRight: 10,
     fontFamily: "Noto Sans HK",
   },
   indicator: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginLeft: 10,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#98c9bdff",
   },
   details: {
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-    borderBottomLeftRadius: 18,
-    borderBottomRightRadius: 18,
+    backgroundColor: "#f4fffcff",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderTopColor: "#98c9bdff",
+    borderTopWidth: 0.8,
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
   },
   sectionTitle: {
     fontSize: 14,
     fontWeight: "700",
     color: "#1A4D6F",
-    marginTop: 10,
+    // marginTop: 4,
     marginBottom: 4,
     fontFamily: "Noto Sans HK",
   },
@@ -135,6 +151,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#444",
     lineHeight: 20,
+    marginBottom: 10, 
     fontFamily: "Noto Sans HK",
   },
   rationaleText: {

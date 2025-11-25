@@ -16,6 +16,38 @@ export default function WeeklyMoodMap({ data }: WeeklyMoodMapProps) {
   const hourLabels = [0, 5, 10, 15, 20]; // label every 5 hours
   const xMargin = 5; // percentage margin on both sides
 
+  // Helper to get ordinal suffix (st, nd, rd, th)
+  const getOrdinal = (n: number) => {
+    if (n > 3 && n < 21) return "th";
+    switch (n % 10) {
+      case 1:
+        return "st";
+      case 2:
+        return "nd";
+      case 3:
+        return "rd";
+      default:
+        return "th";
+    }
+  };
+
+  // Get the date labels for the week dynamically
+  const getWeekDates = () => {
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      const day = d.getDate();
+      const month = d.toLocaleString("en-US", { month: "short" });
+      const year = d.getFullYear();
+      return `${day}${getOrdinal(day)} ${month}, ${year}`; // e.g., 3rd Nov, 2025
+    });
+  };
+  const weekDates = getWeekDates();
+
   return (
     <View style={s.card}>
       <Text style={s.title}>🌦️ Mood Moments This Week</Text>
@@ -45,18 +77,18 @@ export default function WeeklyMoodMap({ data }: WeeklyMoodMapProps) {
         <Text
           style={[
             s.axisLabel,
-            { left: "50%", top: "4%", transform: [{ translateX: -30 }] },
+            { left: "50%", top: "4%", transform: [{ translateX: -40 }] },
           ]}
         >
-          Saturday
+          {weekDates[6]}
         </Text>
         <Text
           style={[
             s.axisLabel,
-            { left: "50%", bottom: "4%", transform: [{ translateX: -30 }] },
+            { left: "50%", bottom: "4%", transform: [{ translateX: -40 }] },
           ]}
         >
-          Sunday
+          {weekDates[0]}
         </Text>
 
         {/* Plot all mood emojis */}
@@ -89,9 +121,9 @@ export default function WeeklyMoodMap({ data }: WeeklyMoodMapProps) {
         })}
       </View>
 
+      <Text style={s.caption}>See when your moods appear most</Text>
       <Text style={s.caption}>
-        Each emoji represents one mood you logged — from early morning (left) to
-        late night (right), Sunday to Saturday.
+        from early mornings to late nights this week.
       </Text>
     </View>
   );

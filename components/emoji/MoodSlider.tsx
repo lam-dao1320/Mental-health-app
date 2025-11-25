@@ -497,38 +497,38 @@ export default function EmojiPage() {
             </View>
 
             {/* iOS: use Modal */}
-              {Platform.OS === "ios" && showPicker && (
-                <Modal
-                  animationType="fade"
-                  transparent={true}
-                  visible={showPicker}
-                  onRequestClose={() => setShowPicker(false)}
+            {Platform.OS === "ios" && showPicker && (
+              <Modal
+                animationType="fade"
+                transparent={true}
+                visible={showPicker}
+                onRequestClose={() => setShowPicker(false)}
+              >
+                <Pressable
+                  style={styles.modalOverlay}
+                  onPress={() => setShowPicker(false)}
                 >
-                  <Pressable
-                    style={styles.modalOverlay}
-                    onPress={() => setShowPicker(false)}
-                  >
-                    <DateTimePickerPage
-                      dateTime={dateTime}
-                      setDateTime={(newDate) => setDateTime(newDate)}
-                      onClose={() => setShowPicker(false)}
-                    />
-                  </Pressable>
-                </Modal>
-              )}
+                  <DateTimePickerPage
+                    dateTime={dateTime}
+                    setDateTime={(newDate) => setDateTime(newDate)}
+                    onClose={() => setShowPicker(false)}
+                  />
+                </Pressable>
+              </Modal>
+            )}
 
-              {/* Android: render picker directly */}
-              {Platform.OS === "android" && showPicker && (
-                <DateTimePicker
-                  value={dateTime}
-                  mode="date"
-                  display="default"
-                  onChange={(event, selectedDate) => {
-                    setShowPicker(false); // closes picker automatically
-                    if (selectedDate) setDateTime(selectedDate);
-                  }}
-                />
-              )}
+            {/* Android: render picker directly */}
+            {Platform.OS === "android" && showPicker && (
+              <DateTimePicker
+                value={dateTime}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowPicker(false); // closes picker automatically
+                  if (selectedDate) setDateTime(selectedDate);
+                }}
+              />
+            )}
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>

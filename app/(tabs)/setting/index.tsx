@@ -1,10 +1,10 @@
-// app/(tabs)/settings.tsx or app/settings.tsx
 import { avatarMap, defaultAvatar } from "@/constants/avatars";
 import { supabase } from "@/lib/supabase";
 import { UserProfile } from "@/lib/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   Image,
@@ -30,8 +30,38 @@ const Colors = {
 
 export default function SettingsScreen() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [imageError, setImageError] = useState(false);
   const router = useRouter();
-  const [imageError, setImageError] = React.useState(false);
+
+  // ✅ Function to load profile from Supabase
+  const fetchProfile = async () => {
+    try {
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_profiles") // make sure table name matches
+        .select("*")
+        .eq("email", user.email)
+        .single();
+
+      if (error) throw error;
+      setProfile(data);
+    } catch (err) {
+      console.error("Error fetching profile:", err);
+    }
+  };
+
+  // ✅ Run fetchProfile every time the screen is focused
+  useFocusEffect(
+    useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
 
   const handleLogout = async () => {
     try {
@@ -52,17 +82,19 @@ export default function SettingsScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.screen}>
-        {/* Profile */}
+        {/* Profile Section */}
         <View style={[styles.profileCard, styles.shadow]}>
           <Image
             source={avatarMap[profile?.icon_name || ""] || defaultAvatar}
             style={styles.avatar}
             onError={() => setImageError(true)}
           />
-          <Text style={styles.name}>
-            {profile?.first_name} {profile?.last_name}
-          </Text>
-          <Text style={styles.email}>{profile?.email}</Text>
+          <View style={{ alignItems: "center" }}>
+            <Text style={styles.name}>
+              {profile?.first_name} {profile?.last_name}
+            </Text>
+            <Text style={styles.email}>{profile?.email}</Text>
+          </View>
         </View>
 
         {/* Profile + Badge */}
@@ -167,7 +199,6 @@ function Divider() {
 const styles = StyleSheet.create({
   container: { paddingBottom: 32 },
   screen: { flex: 1, padding: 16, backgroundColor: Colors.bg },
-
   profileCard: {
     alignItems: "center",
     paddingVertical: 22,
@@ -190,7 +221,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontFamily: "Noto Sans HK",
   },
-
   card: {
     borderRadius: 20,
     backgroundColor: Colors.card,
@@ -200,7 +230,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Colors.border,
   },
-
   shadow: {
     shadowColor: "#000",
     shadowOpacity: 0.06,
@@ -208,7 +237,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-
   logoutBtn: {
     flexDirection: "row",
     backgroundColor: Colors.salmon,

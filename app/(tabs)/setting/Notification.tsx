@@ -1,5 +1,5 @@
-// app/(tabs)/setting/Notifications.tsx
 import Ionicons from "@expo/vector-icons/Ionicons";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import * as Notifications from "expo-notifications";
 import React, { useEffect, useState } from "react";
 import {
@@ -27,16 +27,15 @@ const Colors = {
 export default function NotificationsScreen() {
   const maxWidth = Math.min(Dimensions.get("window").width - 32, 560);
 
-  // Mock local settings
   const [pushEnabled, setPushEnabled] = useState(true);
   const [remindersEnabled, setRemindersEnabled] = useState(true);
+  const [reminderTime, setReminderTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [quietHours, setQuietHours] = useState({
     start: "22:00",
     end: "07:00",
   });
   const [soundsEnabled, setSoundsEnabled] = useState(true);
-
-  // Permission snapshot for UI
   const [permGranted, setPermGranted] = useState<boolean | null>(null);
 
   const GRAY = "rgba(0,0,0,0.28)";
@@ -61,18 +60,19 @@ export default function NotificationsScreen() {
     setPermGranted(Boolean(allowed));
   }
 
-  // Example local schedule placeholder
-  async function scheduleDailyReminder() {
+  async function scheduleDailyReminder(selectedTime: Date) {
     try {
+      const trigger = new Date(selectedTime);
+      await Notifications.cancelAllScheduledNotificationsAsync();
       await Notifications.scheduleNotificationAsync({
         content: {
-          title: "Daily check‑in",
+          title: "Daily check-in",
           body: "Log today’s mood and a few lines in the diary.",
           sound: soundsEnabled ? "default" : undefined,
         },
         trigger: {
-          type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-          seconds: 60 * 60 * 24,
+          hour: trigger.getHours(),
+          minute: trigger.getMinutes(),
           repeats: true,
         },
       });
@@ -84,6 +84,17 @@ export default function NotificationsScreen() {
   useEffect(() => {
     refreshPermissions();
   }, []);
+
+  const handleTimeChange = (event: any, selectedTime?: Date) => {
+    setShowTimePicker(false);
+    if (selectedTime) {
+      setReminderTime(selectedTime);
+      scheduleDailyReminder(selectedTime);
+    }
+  };
+
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   return (
     <ScrollView
@@ -121,23 +132,11 @@ export default function NotificationsScreen() {
         </View>
 
         <View style={styles.btnRow}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.ghostBtn,
-              pressed && { opacity: 0.95 },
-            ]}
-            onPress={requestPermissions}
-          >
+          <Pressable style={styles.ghostBtn} onPress={requestPermissions}>
             <Ionicons name="hand-left-outline" size={18} color={Colors.text} />
             <Text style={styles.ghostText}>Request permission</Text>
           </Pressable>
-          <Pressable
-            style={({ pressed }) => [
-              styles.ghostBtn,
-              pressed && { opacity: 0.95 },
-            ]}
-            onPress={refreshPermissions}
-          >
+          <Pressable style={styles.ghostBtn} onPress={refreshPermissions}>
             <Ionicons name="refresh-outline" size={18} color={Colors.text} />
             <Text style={styles.ghostText}>Check status</Text>
           </Pressable>
@@ -173,7 +172,7 @@ export default function NotificationsScreen() {
             value={remindersEnabled}
             onValueChange={(v) => {
               setRemindersEnabled(v);
-              if (v) scheduleDailyReminder();
+              if (v) scheduleDailyReminder(reminderTime);
             }}
             trackColor={{ false: GRAY, true: MINT_MED }}
             thumbColor="#FFFFFF"
@@ -183,11 +182,33 @@ export default function NotificationsScreen() {
 
         <View style={styles.subRow}>
           <Text style={styles.rowSubtitle}>
-            Quiet hours: {quietHours.start}–{quietHours.end}
+            Reminder time: {formatTime(reminderTime)}
           </Text>
+
+          {/* Change time button styled same as ghostBtn */}
+          <View style={styles.btnRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.ghostBtn,
+                pressed && { opacity: 0.95 },
+              ]}
+              onPress={() => setShowTimePicker(true)}
+            >
+              <Ionicons name="time-outline" size={18} color={Colors.text} />
+              <Text style={styles.ghostText}>Change time</Text>
+            </Pressable>
+          </View>
+
+          {showTimePicker && (
+            <DateTimePicker
+              value={reminderTime}
+              mode="time"
+              display="spinner"
+              onChange={handleTimeChange}
+            />
+          )}
         </View>
       </View>
-
       {/* Sounds */}
       <View style={[styles.card, styles.shadow, { width: "100%", maxWidth }]}>
         <View style={styles.row}>
@@ -240,7 +261,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
-
   card: {
     borderRadius: 20,
     backgroundColor: Colors.card,
@@ -256,10 +276,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     elevation: 2,
   },
-
   row: { flexDirection: "row", alignItems: "center", gap: 12 },
   subRow: { marginTop: 8 },
-
   rowTitle: {
     fontSize: 16,
     fontWeight: "700",
@@ -272,7 +290,6 @@ const styles = StyleSheet.create({
     color: Colors.sub,
     fontFamily: "Noto Sans HK",
   },
-
   btnRow: {
     flexDirection: "row",
     gap: 10,
@@ -294,6 +311,18 @@ const styles = StyleSheet.create({
     color: Colors.text,
     fontWeight: "700",
     fontFamily: "Noto Sans HK",
+  },
+  timeBtn: {
+    marginTop: 8,
+    alignSelf: "flex-start",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   linkText: {
     color: Colors.sub,

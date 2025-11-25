@@ -1,7 +1,11 @@
 import ActivitySuggestion from "@/components/suggestion/activity";
+import AIDisclaimerModal from "@/components/suggestion/disclaimer";
+import PlanSuggestion from "@/components/suggestion/plan";
 import { useUserContext } from "@/context/authContext";
-import { suggestActivities } from "@/lib/geminiAI_func";
+import { getDiaryByEmail } from "@/lib/diary_crud";
+import { suggestActivities, suggestPlans } from "@/lib/geminiAI_func";
 import { getRecordsByEmail } from "@/lib/mood_crud";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
@@ -21,39 +25,76 @@ export default function SuggestPage() {
   const [activitySuggestion, setActivitySuggestion] = useState<any | null>(
     null
   );
+  const [planSuggestion, setPlanSuggestion] = useState<any | null>(
+    null
+  );
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [aiConsent, setAiConsent] = useState<boolean | null>(null);
 
   useFocusEffect(
     useCallback(() => {
-      if (profile) {
-        const loadData = async () => {
+      let data = Array<any>([]);
+      const loadData = async () => {
+        if (profile) {
           try {
             const moodData = await getRecordsByEmail(profile.email);
-            setData(moodData[0]);
+            const diaryData = await getDiaryByEmail(profile.email);
+            // console.log("Fetched diary records:", diaryData);
+            // console.log("Fetched mood records:", moodData);
+
+            let diaryIds = new Set(moodData?.map((m: any) => m.diary.id));
+            const filteredDiary = diaryData?.filter((d: any) => !diaryIds.has(d.id));
+            // console.log("Filtered diary records (unlinked):", filteredDiary);
+            data = [...moodData, ...filteredDiary].sort(
+              (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            // console.log("Merged and sorted records:", data);
+            setData(data);
           } catch (error) {
             setError("Error loading mood records: " + error);
           }
-        };
-        loadData();
-      }
+        }
+
+        const savedConsent = await AsyncStorage.getItem("ai_consent");
+        if (savedConsent === null) setShowDisclaimer(true);
+        else setAiConsent(savedConsent === "true");
+      };
+      loadData();
     }, [profile])
   );
 
-  const status = (data: any) => {
+  const status = (data: Array<any>) => {
+    // console.log("Generating status from data:", data);
     if (!data) return "";
     let status = "Now, I live in Canada.";
     if (profile?.country) status += ` I'm from ${profile.country}.`;
-    const d = new Date(data.date);
-    const recordDate = d.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
+
+    // Build history from records
+    let history = "";
+    data.forEach((entry) => {
+      const d = new Date(entry.date);
+      const recordDate = d.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+      if (entry.diary)
+        history += `On ${recordDate}, I'm feeling ${entry.mood} because ${entry.diary.body}. `
+      else
+        if (entry.mood)
+          history += `On ${recordDate}, I'm feeling ${entry.mood}. `
+        else
+          history += `On ${recordDate}, I wrote a diary entry (${entry.body}). `;
     });
-    if (data.diary)
-      return `${status} I'm feeling ${data.mood} (Recorded on ${recordDate}) because ${data.diary.body}`;
-    return `${status} I'm feeling ${data.mood} (Recorded on ${recordDate})`;
+
+    return status + " " + history;
   };
 
   const handleActivitySuggestion = async () => {
+    if (!aiConsent) {
+      setError("AI suggestions are disabled until you consent.");
+      return;
+    }
     setActivityLoading(true);
     setError(null);
     try {
@@ -61,8 +102,14 @@ export default function SuggestPage() {
         setError("Please log your mood first!");
         return;
       }
-      const aiResponse = await suggestActivities(status(data));
-      setActivitySuggestion(JSON.parse(aiResponse));
+      // console.log("Fetching AI suggestions with status:", status(data));
+      const aiActivityResponse = await suggestActivities(status(data));
+      setActivitySuggestion(JSON.parse(aiActivityResponse));
+      // console.log("AI Activity Suggestion Response:", aiActivityResponse);
+
+      const aiPlanResponse = await suggestPlans(profile);
+      setPlanSuggestion(JSON.parse(aiPlanResponse));
+      // console.log("AI Plan Suggestion Response:", aiPlanResponse);
     } catch (error) {
       setError("Error fetching AI suggestions: " + error);
     } finally {
@@ -81,40 +128,61 @@ export default function SuggestPage() {
         {error && <Text style={styles.error}>{error}</Text>}
 
         <View style={styles.section}>
-          {/* Output Box */}
-          <View style={styles.outputBox}>
-            {!activitySuggestion ? (
+          {!activitySuggestion && !planSuggestion && (
+            <View style={[styles.outputBox, styles.aiBox]}>
               <Text style={styles.placeholder}>
-                🌿 Hey there! Let’s see what new activity you could try today!
+                🌿 Hey there! AI suggests small activities based on your most
+                recent mood entry.
               </Text>
-            ) : (
+            </View>
+          )}
+          {activitySuggestion && 
+            <View style={[styles.outputBox, styles.activityBox]}>
               <ActivitySuggestion data={activitySuggestion} />
-            )}
-          </View>
+            </View>
+          }
+          {planSuggestion &&
+            <View style={[styles.outputBox, styles.planBox]}>
+              <PlanSuggestion data={planSuggestion} />
+            </View>
+          }
 
-          {/* Button */}
           <TouchableOpacity
             style={[
               styles.button,
-              { backgroundColor: "#F49790" },
-              activityLoading && styles.disabled,
+              { backgroundColor: aiConsent ? "#84B4FF" : "#BDBDBD" },
+              (activityLoading || !aiConsent) && styles.disabled,
             ]}
             onPress={handleActivitySuggestion}
-            disabled={activityLoading}
+            disabled={activityLoading || !aiConsent}
           >
             {activityLoading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>Get Activity Suggestion</Text>
+              <Text style={styles.buttonText}>
+                {aiConsent
+                  ? "Get AI Suggestion"
+                  : "AI Disabled (View Disclaimer)"}
+              </Text>
             )}
           </TouchableOpacity>
+        </View>
 
-          <Text style={styles.description}>
-            AI suggests small activities like music, journaling, or walking
-            based on your most recent mood entry.
-          </Text>
+        {/* Re-Read Disclaimer Button — at very bottom */}
+        <View style={styles.footer}>
+          <TouchableOpacity onPress={() => setShowDisclaimer(true)}>
+            <Text style={styles.reviewText}>Review AI Disclaimer</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <AIDisclaimerModal
+        visible={showDisclaimer}
+        onClose={(consent) => {
+          setAiConsent(consent);
+          setShowDisclaimer(false);
+        }}
+      />
     </View>
   );
 }
@@ -148,19 +216,13 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontFamily: "Noto Sans HK",
   },
-  section: {
-    width: "100%",
-    alignItems: "center",
-  },
+  section: { width: "100%", alignItems: "center" },
   outputBox: {
     width: "100%",
-    minHeight: 120,
-    backgroundColor: "#FFF5F7",
+    minHeight: 100,
     borderRadius: 18,
-    borderWidth: 1,
-    borderColor: "#F4C6C3",
+    borderWidth: 1,    
     marginBottom: 18,
-    padding: 16,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -168,6 +230,21 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowRadius: 4,
     elevation: 2,
+  },
+  aiBox:{
+    borderColor: "#a7bfe7ff",
+    backgroundColor: "#e5efffff",
+    padding: 16,
+  },
+  activityBox: {
+    borderColor: "#F4C6C3",
+    backgroundColor: "#FFF5F7",
+    padding: 5,
+  },
+  planBox: {
+    borderColor: "#98c9bdff",
+    backgroundColor: "#f4fffcff",
+    padding: 5,
   },
   placeholder: {
     textAlign: "center",
@@ -205,4 +282,16 @@ const styles = StyleSheet.create({
     width: "85%",
   },
   disabled: { opacity: 0.6 },
+  footer: {
+    marginTop: 40,
+    paddingBottom: 20,
+    alignItems: "center",
+    width: "100%",
+  },
+  reviewText: {
+    color: "#6B7280",
+    fontSize: 14,
+    textDecorationLine: "underline",
+    fontFamily: "Noto Sans HK",
+  },
 });

@@ -1,7 +1,18 @@
 import { useUserContext } from "@/context/authContext";
-import { checkMoodBadges, checkQuestionnaireBadges, fetchAllBadges } from "@/lib/log_crud";
+import {
+  checkMoodBadges,
+  checkQuestionnaireBadges,
+  fetchAllBadges,
+} from "@/lib/log_crud";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 
 const Colors = {
   bg: "#F9F9FB",
@@ -11,7 +22,8 @@ const Colors = {
   border: "rgba(0,0,0,0.06)",
   mint: "#ACD1C9",
   divider: "rgba(0,0,0,0.08)",
-  gray: "#D1D5DB", // 🆕 Added gray color for disabled badges
+  overlay: "rgba(255,255,255,0.6)",
+  gray: "#D1D5DB",
 };
 
 export default function BadgesPage() {
@@ -22,31 +34,26 @@ export default function BadgesPage() {
   useEffect(() => {
     if (!profile?.email) return;
 
-    const email = profile?.email;
+    const email = profile.email;
 
     async function loadBadges() {
       setLoading(true);
-
       await checkMoodBadges(email);
       await checkQuestionnaireBadges(email);
-
       const data = await fetchAllBadges(email);
       setBadges(data || []);
-
       setLoading(false);
     }
 
     loadBadges();
   }, [profile?.email]);
 
-  // 🆕 Helper function to check if a user owns a specific badge
   const hasBadge = (type: string, level: string) =>
     badges.some((b) => b.badge_type === type && b.level === level);
 
   type BadgeType = "mood" | "questionnaire";
   type BadgeLevel = "beginner" | "mid" | "advanced";
 
-  // 🆕 Moved icons into one centralized object
   const badgeIcons: Record<BadgeType, Record<BadgeLevel, any>> = {
     mood: {
       beginner: require("@/assets/images/mood/beginner.png"),
@@ -60,7 +67,6 @@ export default function BadgesPage() {
     },
   };
 
-  // 🆕 User-friendly labels for each badge level
   const badgeLabels: Record<BadgeLevel, string> = {
     beginner: "First Log",
     mid: "1-Week Streak",
@@ -69,37 +75,40 @@ export default function BadgesPage() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#555" />
         <Text>Loading badges...</Text>
       </View>
     );
   }
 
-  // 🆕 Reusable section renderer (used for Mood + Questionnaire)
-  const renderBadgeRow = (type: BadgeType, title: string, description: string) => (
+  const renderBadgeRow = (
+    type: BadgeType,
+    title: string,
+    description: string
+  ) => (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.sectionDesc}>{description}</Text>
 
-      {/* 🆕 New layout for badges — always show all 3, dim if not earned */}
       <View style={styles.badgeRow}>
         {(["beginner", "mid", "advanced"] as BadgeLevel[]).map((level) => {
           const earned = hasBadge(type, level);
+
           return (
             <View key={`${type}-${level}`} style={styles.badgeContainer}>
-              <Image
-                source={badgeIcons[type][level]}
-                style={[
-                  styles.badgeImage,
-                  !earned && { opacity: 0.3, tintColor: Colors.gray }, // 🆕 Disabled style
-                ]}
-              />
+              <View style={styles.badgeWrapper}>
+                <Image
+                  source={badgeIcons[type][level]}
+                  style={[styles.badgeImage, !earned && { opacity: 0.5 }]}
+                />
+                {!earned && (
+                  <View style={styles.grayOverlay} pointerEvents="none" />
+                )}
+              </View>
+
               <Text
-                style={[
-                  styles.badgeLabel,
-                  !earned && { color: Colors.sub }, // 🆕 Gray label when not earned
-                ]}
+                style={[styles.badgeLabel, !earned && { color: Colors.sub }]}
               >
                 {badgeLabels[level]}
               </Text>
@@ -110,33 +119,144 @@ export default function BadgesPage() {
     </View>
   );
 
-  return (
-    // 🆕 ScrollView instead of FlatList, vertical stacking for two sections
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>Your Badges 🏅</Text>
+  const renderOneTimeSection = () => {
+    // --- Logic to check status ---
+    // 1. First Login: If they are on this page, they are logged in.
+    const hasLogin = true;
 
-      {/* 🆕 Section 1 – Mood badges */}
+    // 2. First Mood: We check if they have the 'beginner' mood badge (which is "First Log")
+    const hasMoodEntry = hasBadge("mood", "beginner");
+
+    // 3. First Badge: If the badges array has any length, they have earned at least one badge.
+    const hasAnyBadge = badges.length > 0;
+
+    // 4. First Diary: Check if a 'diary' type badge exists in the DB response
+    // (Make sure your backend saves this badge type when they edit a diary!)
+    const hasDiaryEntry = badges.some((b) => b.badge_type === "diary");
+
+    // 5. Define the 12 Tasks
+    const oneTimeTasks = [
+      // --- Row 1: Flowers ---
+      {
+        label: "First Login",
+        icon: require("@/assets/images/otherBadge/flower/1.png"),
+        earned: hasLogin,
+      },
+      {
+        label: "First Mood Entry",
+        icon: require("@/assets/images/otherBadge/flower/2.png"),
+        earned: hasMoodEntry,
+      },
+      {
+        label: "First Suggestion",
+        icon: require("@/assets/images/otherBadge/flower/3.png"),
+        earned: false, // TODO: Add logic
+      },
+      {
+        label: "First Diary Edit",
+        icon: require("@/assets/images/otherBadge/flower/4.png"),
+        earned: hasDiaryEntry,
+      },
+      {
+        label: "First Download",
+        icon: require("@/assets/images/otherBadge/flower/5.png"),
+        earned: false, // TODO: Add logic
+      },
+      {
+        label: "First Badge",
+        // Note: .jpg for nature folder
+        icon: require("@/assets/images/otherBadge/nature/1.jpg"),
+        earned: hasAnyBadge,
+      },
+
+      // --- Row 2: Nature & Placeholders ---
+      {
+        label: "3-Day Streak",
+        // Using unused Nature 2
+        icon: require("@/assets/images/otherBadge/nature/2.jpg"),
+        earned: false,
+      },
+      {
+        label: "Weekly Review",
+        // Using unused Nature 3
+        icon: require("@/assets/images/otherBadge/nature/3.jpg"),
+        earned: false,
+      },
+      // --- Tasks with NO images (Grey Circles) ---
+      { label: "Monthly Goal", icon: null, earned: false },
+      { label: "Perfect Month", icon: null, earned: false },
+      { label: "Year in Review", icon: null, earned: false },
+      { label: "Social Share", icon: null, earned: false },
+    ];
+
+    return (
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>One-Time Tasks</Text>
+        <Text style={styles.sectionDesc}>
+          Preview of unique achievements. These will unlock as you use the app.
+        </Text>
+
+        <View style={styles.badgeRow}>
+          {oneTimeTasks.map((task, index) => (
+            <View key={index} style={styles.badgeContainer}>
+              {/* If icon exists, render Image. If null, render Grey Circle */}
+              {task.icon ? (
+                <View style={styles.badgeWrapper}>
+                  <Image
+                    source={task.icon}
+                    style={[
+                      styles.badgeImage,
+                      !task.earned && { opacity: 0.5 },
+                    ]}
+                  />
+                  {!task.earned && (
+                    <View style={styles.grayOverlay} pointerEvents="none" />
+                  )}
+                </View>
+              ) : (
+                // The Grey Circle Placeholder
+                <View style={styles.circlePlaceholder} />
+              )}
+
+              <Text
+                style={[
+                  styles.badgeLabel,
+                  !task.earned && { color: Colors.sub },
+                ]}
+              >
+                {task.label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 30 }}
+    >
+      <Text style={styles.title}>Your Badges</Text>
       {renderBadgeRow(
         "mood",
         "Mood Tracker Badges",
         "Earn badges for consistently logging your moods!"
       )}
-
-      {/* 🆕 Divider between sections */}
       <View style={styles.divider} />
-
-      {/* 🆕 Section 2 – Questionnaire badges */}
       {renderBadgeRow(
         "questionnaire",
         "Questionnaire Badges",
         "Track your growth through daily reflections!"
       )}
+      <View style={styles.divider} />
+      {renderOneTimeSection()}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  // 🆕 Updated layout & styling for the new card-style sections
   container: {
     flex: 1,
     backgroundColor: Colors.bg,
@@ -156,8 +276,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 24,
     fontFamily: "Noto Sans HK",
-    marginTop: 6,
-    paddingTop: 10,
   },
   section: {
     backgroundColor: Colors.card,
@@ -167,7 +285,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 6,
     elevation: 2,
-    marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -184,25 +301,46 @@ const styles = StyleSheet.create({
   },
   badgeRow: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-around",
+    rowGap: 18,
   },
   badgeContainer: {
     alignItems: "center",
+    width: 90,
   },
-  badgeImage: {
+  badgeWrapper: {
+    position: "relative",
     width: 70,
     height: 70,
-    marginBottom: 8,
+  },
+  badgeImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+  grayOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: Colors.overlay,
+    borderRadius: 8,
   },
   badgeLabel: {
     fontSize: 13,
     color: Colors.text,
     fontFamily: "Noto Sans HK",
     textAlign: "center",
+    marginTop: 6,
   },
   divider: {
     height: 1,
     backgroundColor: Colors.divider,
-    marginVertical: 8,
+    marginVertical: 15,
+  },
+  circlePlaceholder: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    marginBottom: 6,
+    backgroundColor: Colors.gray,
   },
 });
