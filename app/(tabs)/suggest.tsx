@@ -39,6 +39,35 @@ export default function SuggestPage() {
   useFocusEffect(
     useCallback(() => {
       const loadData = async () => {
+        if (profile) {
+          try {
+            const moodData = await getRecordsByEmail(profile.email);
+            const diaryData = await getDiaryByEmail(profile.email);
+            // console.log("Fetched diary records:", diaryData);
+            // console.log("Fetched mood records:", moodData);
+
+            // Safely extract diary IDs from moodData
+            let diaryIds = new Set(
+              moodData
+              ?.map((m: any) => m.diary?.id)
+              .filter((id: any) => id != null)
+            );
+            
+            // Filter diary entries that do NOT exist in moodData
+            const filteredDiary = diaryData?.filter(
+              (d: any) => !diaryIds.has(d.id)
+            );
+            // console.log("Filtered diary records (unlinked):", filteredDiary);
+
+            // Merge and sort
+            data = [...moodData, ...filteredDiary].sort(
+              (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+            );
+            // console.log("Merged and sorted records:", data);
+            setData(data);
+          } catch (error) {
+            setError("Error loading mood records: " + error);
+          }
         setError(null);
 
         if (!profile || !profile.email) {
