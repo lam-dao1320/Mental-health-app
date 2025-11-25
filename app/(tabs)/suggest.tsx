@@ -60,7 +60,7 @@ export default function SuggestPage() {
             // console.log("Filtered diary records (unlinked):", filteredDiary);
 
             // Merge and sort
-            data = [...moodData, ...filteredDiary].sort(
+            let data = [...moodData, ...filteredDiary].sort(
               (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
             );
             // console.log("Merged and sorted records:", data);
@@ -68,7 +68,7 @@ export default function SuggestPage() {
           } catch (error) {
             setError("Error loading mood records: " + error);
           }
-        setError(null);
+        setError(null)};
 
         if (!profile || !profile.email) {
           return; // Profile not loaded yet, wait.
