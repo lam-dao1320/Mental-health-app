@@ -16,12 +16,14 @@ import {
 } from "react-native";
 
 const GRADIENTS: [string, string][] = [
-  ["#FBEAEA", "#F9DADA"], // angry – rose mist
-  ["#E3ECFA", "#D8E5F4"], // sad – baby sky
-  ["#F1E6F6", "#E7DDF1"], // low – pale lilac
-  ["#FFFBE2", "#FFF4CC"], // okay – soft cream
-  ["#E8FAEC", "#DFF8E4"], // great – mint cloud
+  ["#FBEAEA", "#F9DADA"], // angry – rose mist (0)
+  ["#E3ECFA", "#D8E5F4"], // sad – baby sky (1)
+  ["#F1E6F6", "#E7DDF1"], // low – pale lilac (2)
+  ["#FFFBE2", "#FFF4CC"], // okay – soft cream (3)
+  ["#E8FAEC", "#DFF8E4"], // great – mint cloud (4)
 ];
+const RAINBOW_GRADIENT: [string, string] = ["#f1e8b1ff", "#b1d6f0ff"]; // Standalone Diary: Gold to Hot Pink
+
 const EMOJI: Record<string, string> = {
   angry: "😡",
   sad: "😢",
@@ -48,7 +50,10 @@ export default function HistoryPage() {
   useFocusEffect(
     useCallback(() => {
       const load = async () => {
-        const { data, error } = await supabase
+        if (!profile?.email) return;
+
+        // 1. Fetch Mood Logs and their linked Diaries
+        const { data: moodData, error: moodError } = await supabase
           .from("mood_log")
           .select(
             `
@@ -56,24 +61,81 @@ export default function HistoryPage() {
             user_email,
             mood,
             date,
-            diary:diary!fk_diary (
+            diary ( 
               id,
               body,
               date
             )
           `
           )
+          .eq("user_email", profile.email)
           .order("date", { ascending: false });
 
-        if (error) {
-          console.error("Error fetching mood_log history:", error);
+        if (moodError) {
+          console.error("Error fetching mood logs:", moodError);
           return;
         }
 
-        const filteredRecord = data.filter(
-          (item) => item.user_email === profile?.email
+        // 2. Fetch ALL Diary entries
+        const { data: diaryData, error: diaryError } = await supabase
+          .from("diary")
+          .select(`id, body, date`)
+          .eq("user_email", profile.email);
+
+        if (diaryError) {
+          console.error("Error fetching diary entries:", diaryError);
+          return;
+        }
+
+        // --- MERGE LOGIC ---
+
+        // Map to store unique entries, prioritized by date/timestamp.
+        const allEntriesMap = new Map();
+
+        // 3. Add Mood Log entries (Moods with linked diaries)
+        // These are prioritized if they exist for a given date.
+        moodData.forEach((entry) => {
+          // If the entry has a mood, it's a primary mood log record
+          allEntriesMap.set(entry.date, {
+            id: entry.id,
+            mood: entry.mood,
+            date: entry.date,
+            diary: entry.diary,
+          });
+        });
+
+        // 4. Add Standalone Diary entries
+        diaryData.forEach((diaryEntry) => {
+          const dateKey = diaryEntry.date;
+
+          // If an entry for this exact date doesn't exist yet (meaning there's no mood logged for this time)
+          if (!allEntriesMap.has(dateKey)) {
+            allEntriesMap.set(dateKey, {
+              id: diaryEntry.id,
+              mood: null, // Indicates a standalone diary
+              date: dateKey,
+              diary: {
+                id: diaryEntry.id,
+                body: diaryEntry.body,
+                date: diaryEntry.date,
+              },
+            });
+          } else {
+            // Optional: If an unlinked mood exists (mood !== null, diary === null),
+            // this existing mood record will be prioritized over the standalone diary,
+            // but the diary content will be available through the linked entry if the
+            // linking was done correctly in the emoji screen.
+            // Since the merge logic is strictly prioritized by moodData first, we trust
+            // the mood log to be the source of truth if it exists.
+          }
+        });
+
+        // 5. Sort and Set
+        const combinedRecords = Array.from(allEntriesMap.values()).sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
         );
-        setRecords(filteredRecord || []);
+
+        setRecords(combinedRecords || []);
       };
 
       load();
@@ -93,8 +155,13 @@ export default function HistoryPage() {
   const filteredRecord = records.filter((record) => {
     if (!query.trim()) return true;
     const q = query.toLowerCase();
+
+    // Check if mood exists for searching
     const moodMatch = record.mood?.toLowerCase().includes(q);
+
+    // Check if diary body exists for searching
     const diaryMatch = record.diary?.body?.toLowerCase().includes(q);
+
     return moodMatch || diaryMatch;
   });
 
@@ -122,26 +189,37 @@ export default function HistoryPage() {
 
           <FlatList
             data={filteredRecord}
-            keyExtractor={(item, index) => String(item.id ?? index)}
+            keyExtractor={(item, index) => String(item.id ?? index) + item.date}
             contentContainerStyle={styles.listContent}
             renderItem={({ item }) => {
-              const idx = moodToIndex(item.mood || "");
-              const gradient = GRADIENTS[idx];
-              const emoji = EMOJI[item.mood?.toLowerCase()] ?? "😊";
+              const isStandaloneDiary = item.mood === null;
+
+              const moodLabel = item.mood ? item.mood.toLowerCase() : "okay";
+              let gradient, emoji;
+
+              if (isStandaloneDiary) {
+                gradient = RAINBOW_GRADIENT; // Apply rainbow gradient
+                emoji = "📝";
+              } else {
+                // Use standard mood values
+                const idx = moodToIndex(moodLabel);
+                gradient = GRADIENTS[idx];
+                emoji = EMOJI[moodLabel];
+              }
 
               const bodyText = item.diary?.body ?? "(no diary written)";
-              const dateText = item.diary?.date
-                ? dateFormat(item.diary.date)
-                : dateFormat(item.date);
+              const dateText = dateFormat(item.date);
 
               return (
                 <Card
                   record={{
                     id: item.id,
-                    moodText: `${
-                      item.mood?.charAt(0).toUpperCase() +
-                      item.mood?.slice(1).toLowerCase()
-                    } ${emoji}`,
+                    moodText: item.mood
+                      ? `${
+                          item.mood.charAt(0).toUpperCase() +
+                          item.mood.slice(1).toLowerCase()
+                        } ${emoji}`
+                      : `Diary Entry ${emoji}`, // Label for standalone diary
                     dateText,
                     bodyText,
                   }}

@@ -153,7 +153,7 @@ export default function EmojiPage() {
       };
 
       const savedMood = await addNewRecord(newRecord);
-      setCurrentRecordId(savedMood.id);
+      setCurrentRecordId(savedMood.id); // SUCCESSFUL MOOD ID IS SAVED HERE
       fetchRecords();
     } catch (err) {
       console.error(err instanceof Error ? err.message : err);
@@ -173,61 +173,96 @@ export default function EmojiPage() {
 
   const handleDiaryToggle = () => setIsOpen(!isOpen);
 
-  // ✅ Save diary linked to latest mood
+  // ✅ Save diary (and link only if an unlinked mood exists for the time OR if currentRecordId is set)
   const onSaveDiary = async () => {
     if (!profile) return;
 
     try {
       const cutoff = dateTime.toISOString();
+      let moodToLink: { id: string; diary_id: string | null } | null = null;
+      let moodAlreadyLinked = false;
 
-      // fetch latest mood by matching with the date time
-      const { data: moods, error: moodErr } = await supabase
-        .from("mood_log")
-        .select("id, date, diary_id")
-        .eq("user_email", profile.email)
-        .eq("date", cutoff)
-        .order("date", { ascending: false })
-        .limit(1);
+      // PRIORITY 1: Check if a mood was saved THIS SESSION using the currentRecordId
+      if (currentRecordId) {
+        // Fetch the mood log by ID to ensure it exists and is unlinked
+        const { data: currentMood, error: currentMoodErr } = await supabase
+          .from("mood_log")
+          .select("id, diary_id")
+          .eq("id", currentRecordId)
+          .single();
 
-      if (moodErr) throw moodErr;
-      if (!moods || moods.length === 0) {
-        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
-        return;
+        if (currentMoodErr) throw currentMoodErr;
+
+        if (currentMood.diary_id) {
+          moodAlreadyLinked = true;
+          Alert.alert(
+            "Error",
+            "The current mood entry already has a diary linked."
+          );
+          return;
+        }
+
+        moodToLink = currentMood;
       }
 
-      const latest = moods[0];
-      if (latest.diary_id) {
-        Alert.alert("Error", "This mood already has a diary linked.");
-        return;
+      // PRIORITY 2: Fallback check for any other unlinked mood at the current exact time
+      if (!moodToLink) {
+        const { data: fallbackMoods, error: fallbackMoodErr } = await supabase
+          .from("mood_log")
+          .select("id, diary_id")
+          .eq("user_email", profile.email)
+          .eq("date", cutoff)
+          .is("diary_id", null)
+          .limit(1);
+
+        if (fallbackMoodErr) throw fallbackMoodErr;
+
+        if (fallbackMoods && fallbackMoods.length > 0) {
+          moodToLink = fallbackMoods[0];
+        }
       }
 
-      // create diary
+      // 2. If mood is already linked (only happens if currentRecordId was set and the fetch failed/showed linked), exit
+      if (moodAlreadyLinked) return;
+
+      // 3. Create diary entry
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")
         .insert({
           user_email: profile.email,
           body: textDiary,
-          date: moods[0].date,
+          date: cutoff,
         })
-        .select("id") // ensure ID is returned
+        .select("id")
         .single();
 
       if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
+      const newDiaryId = diary.id;
 
-      // explicitly update mood_log
-      const { error: updateErr } = await supabase
-        .from("mood_log")
-        .update({ diary_id: diary.id })
-        .eq("id", latest.id)
-        .select("id, diary_id"); // force return, so we can debug
+      // 4. Conditional Link to Mood Log
+      if (moodToLink) {
+        // Mood found (either current session or fallback) and is unlinked -> Perform the update/link
+        const { error: updateErr } = await supabase
+          .from("mood_log")
+          .update({ diary_id: newDiaryId })
+          .eq("id", moodToLink.id);
 
-      if (updateErr) throw updateErr;
-      console.log("✅ mood_log updated:", {
-        moodId: latest.id,
-        linkedDiaryId: diary.id,
-      });
+        if (updateErr) throw updateErr;
 
-      Alert.alert("Success", "Diary linked to recent mood!");
+        console.log("✅ Diary saved and linked to existing mood:", {
+          moodId: moodToLink.id,
+          linkedDiaryId: newDiaryId,
+        });
+      } else {
+        // No unlinked mood found. Diary is saved standalone.
+        console.log("✅ Diary saved successfully (standalone entry).", {
+          diaryId: newDiaryId,
+        });
+      }
+
+      Alert.alert("Success", "Diary Saved!");
+      // Reset current mood ID after successful save/link
+      setCurrentRecordId(null);
       fetchRecords();
       setTextDiary("");
       setIsOpen(false);
@@ -501,8 +536,8 @@ export default function EmojiPage() {
               <Modal
                 animationType="fade"
                 transparent={true}
-                visible={showPicker}
-                onRequestClose={() => setShowPicker(false)}
+                visible={isOpen}
+                onRequestClose={() => setIsOpen(false)}
               >
                 <Pressable
                   style={styles.modalOverlay}

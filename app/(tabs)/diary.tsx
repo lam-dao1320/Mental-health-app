@@ -106,11 +106,8 @@ export default function DiaryPage() {
       fetchDiary();
       setText("");
     } catch (err: any) {
-      if (err.message?.toLowerCase().includes("duplicate")) {
-        Alert.alert("Error", "Entry already exists.");
-      } else {
-        Alert.alert("Error", err.message || "Save failed");
-      }
+      // MODIFIED CATCH BLOCK: Handle generic save errors
+      Alert.alert("Error", err.message || "Save failed");
       console.error(err);
     }
 
