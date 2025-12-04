@@ -51,6 +51,28 @@ const moodToIndex = (m: string | null) => {
   return 3;
 };
 
+const dateTimeFormat = (date?: Date | null) => {
+  if (!date) return "";
+  const dateObj = new Date(date);
+
+  const dayMonthYear = dateObj.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  const weekday = dateObj.toLocaleDateString("en-US", {
+    weekday: "short",
+  });
+
+  const timePart = dateObj.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  return `${dayMonthYear} (${weekday}) • ${timePart}`;
+};
+
 export default function CardDetails() {
   const { id } = useLocalSearchParams();
   const { profile, setRecords } = useUserContext();
@@ -152,16 +174,6 @@ export default function CardDetails() {
       }
     }
   }, [currentRecord]);
-
-  const dateFormat = (date?: Date | null) => {
-    if (!date) return "";
-    const dateObj = new Date(date);
-    const day = dateObj.getDate();
-    const month = dateObj.toLocaleString("en-US", { month: "short" });
-    const year = dateObj.getFullYear();
-    const weekday = dateObj.toLocaleString("en-US", { weekday: "short" });
-    return `${day} ${month} ${year} (${weekday})`;
-  };
 
   if (!currentRecord) {
     return (
@@ -265,11 +277,13 @@ export default function CardDetails() {
               }
 
               // 2️⃣ Delete DIARY (always required since this page is driven by a diary or linked mood)
-              const { error: diaryErr } = await supabase
-                .from("diary")
-                .delete()
-                .eq("id", diaryIdToDelete);
-              if (diaryErr) throw diaryErr;
+              if (diaryIdToDelete) {
+                const { error: diaryErr } = await supabase
+                  .from("diary")
+                  .delete()
+                  .eq("id", diaryIdToDelete);
+                if (diaryErr) throw diaryErr;
+              }
 
               await fetchRecords();
               router.back();
@@ -303,7 +317,8 @@ export default function CardDetails() {
 
             {/* Date Time */}
             <View style={s.dateTimeContainer}>
-              <Text style={s.date}>{dateFormat(dateTime)}</Text>
+              {/* --- UPDATE: Use new dateTimeFormat --- */}
+              <Text style={s.date}>{dateTimeFormat(dateTime)}</Text>
               <Pressable
                 style={s.pillBtn}
                 onPress={() => setShowPicker(true)}
@@ -337,7 +352,7 @@ export default function CardDetails() {
               {Platform.OS === "android" && showPicker && (
                 <DateTimePicker
                   value={dateTime}
-                  mode="date"
+                  mode="datetime" // Changed mode to 'datetime' for combined picker on Android
                   display="default"
                   onChange={(event, selectedDate) => {
                     setShowPicker(false);
