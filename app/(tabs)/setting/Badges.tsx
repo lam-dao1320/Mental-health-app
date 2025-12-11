@@ -120,13 +120,73 @@ export default function BadgesPage() {
   );
 
   const renderOneTimeSection = () => {
+    // --- Logic to check status ---
+    // 1. First Login: If they are on this page, they are logged in.
+    const hasLogin = true;
+
+    // 2. First Mood: We check if they have the 'beginner' mood badge (which is "First Log")
+    const hasMoodEntry = hasBadge("mood", "beginner");
+
+    // 3. First Badge: If the badges array has any length, they have earned at least one badge.
+    const hasAnyBadge = badges.length > 0;
+
+    // 4. First Diary: Check if a 'diary' type badge exists in the DB response
+    // (Make sure your backend saves this badge type when they edit a diary!)
+    const hasDiaryEntry = badges.some((b) => b.badge_type === "diary");
+
+    // 5. Define the 12 Tasks
     const oneTimeTasks = [
-      "First Login",
-      "First Mood Entry",
-      "First Suggestion Click",
-      "First Diary Edit",
-      "First Data Download",
-      "First Badge Earned",
+      // --- Row 1: Flowers ---
+      {
+        label: "First Login",
+        icon: require("@/assets/images/otherBadge/flower/1.png"),
+        earned: hasLogin,
+      },
+      {
+        label: "First Mood Entry",
+        icon: require("@/assets/images/otherBadge/flower/2.png"),
+        earned: hasMoodEntry,
+      },
+      {
+        label: "First Suggestion",
+        icon: require("@/assets/images/otherBadge/flower/3.png"),
+        earned: false, // TODO: Add logic
+      },
+      {
+        label: "First Diary Edit",
+        icon: require("@/assets/images/otherBadge/flower/4.png"),
+        earned: hasDiaryEntry,
+      },
+      {
+        label: "First Download",
+        icon: require("@/assets/images/otherBadge/flower/5.png"),
+        earned: false, // TODO: Add logic
+      },
+      {
+        label: "First Badge",
+        // Note: .jpg for nature folder
+        icon: require("@/assets/images/otherBadge/nature/1.png"),
+        earned: hasAnyBadge,
+      },
+
+      // --- Row 2: Nature & Placeholders ---
+      {
+        label: "3-Day Streak",
+        // Using unused Nature 2
+        icon: require("@/assets/images/otherBadge/nature/2.png"),
+        earned: false,
+      },
+      {
+        label: "Weekly Review",
+        // Using unused Nature 3
+        icon: require("@/assets/images/otherBadge/nature/3.png"),
+        earned: false,
+      },
+      // --- Tasks with NO images (Grey Circles) ---
+      { label: "Monthly Goal", icon: null, earned: false },
+      { label: "Perfect Month", icon: null, earned: false },
+      { label: "Year in Review", icon: null, earned: false },
+      { label: "Social Share", icon: null, earned: false },
     ];
 
     return (
@@ -137,16 +197,34 @@ export default function BadgesPage() {
         </Text>
 
         <View style={styles.badgeRow}>
-          {oneTimeTasks.map((label, index) => (
+          {oneTimeTasks.map((task, index) => (
             <View key={index} style={styles.badgeContainer}>
-              <View
+              {/* If icon exists, render Image. If null, render Grey Circle */}
+              {task.icon ? (
+                <View style={styles.badgeWrapper}>
+                  <Image
+                    source={task.icon}
+                    style={[
+                      styles.badgeImage,
+                      !task.earned && { opacity: 0.5 },
+                    ]}
+                  />
+                  {!task.earned && (
+                    <View style={styles.grayOverlay} pointerEvents="none" />
+                  )}
+                </View>
+              ) : (
+                // The Grey Circle Placeholder
+                <View style={styles.circlePlaceholder} />
+              )}
+
+              <Text
                 style={[
-                  styles.circlePlaceholder,
-                  { backgroundColor: Colors.gray },
+                  styles.badgeLabel,
+                  !task.earned && { color: Colors.sub },
                 ]}
-              />
-              <Text style={[styles.badgeLabel, { color: Colors.sub }]}>
-                {label}
+              >
+                {task.label}
               </Text>
             </View>
           ))}
