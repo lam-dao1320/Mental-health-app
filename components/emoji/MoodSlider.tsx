@@ -46,7 +46,13 @@ type MoodEntry = {
   displayTime: string;
 };
 
-const mockScore = {"anxiety_score": 15, "depression_score": 18, "overall_score": 29, "summary": "The user is experiencing continued sadness and stress due to uncompleted tasks. Their emotional state shows a slight decline, with increased depression and anxiety contributing to a worsening of overall wellness."}
+const mockScore = {
+  anxiety_score: 15,
+  depression_score: 18,
+  overall_score: 29,
+  summary:
+    "The user is experiencing continued sadness and stress due to uncompleted tasks. Their emotional state shows a slight decline, with increased depression and anxiety contributing to a worsening of overall wellness.",
+};
 
 const MOODS = [
   { emoji: "😡", label: "angry", word: "ANGRY" },
@@ -282,7 +288,6 @@ export default function EmojiPage() {
       setCurrentRecordId(null);
       fetchRecords();
       setTextDiary("");
-      
     } catch (err) {
       Alert.alert(
         "Error",
@@ -292,11 +297,13 @@ export default function EmojiPage() {
     } finally {
       setLoadingScore(false);
     }
-    setShowPicker(false);
+    // We keep setShowPicker(false) here, even though it's set earlier, as a failsafe
+    // to ensure no remnants of the date picker are left if this function were ever called
+    // while the picker was somehow active.
+    // setShowPicker(false); // Can be commented out or removed, but harmless.
   };
 
   const calculate = async () => {
-
     console.log("Profile: ", profile);
     console.log("Mood: ", mood);
     console.log("Diary: ", textDiary);
@@ -304,24 +311,25 @@ export default function EmojiPage() {
 
     try {
       const resData = await calculateNewScore(profile, status);
-      const res: NewScoreData = typeof resData === "string" ? JSON.parse(resData) : resData;
+      const res: NewScoreData =
+        typeof resData === "string" ? JSON.parse(resData) : resData;
       // const res = mockScore;
       setScore(res);
       console.log("Score response: ", res);
 
-    let updatedProfile = {
-      first_name: profile?.first_name || "",
-      last_name: profile?.last_name || "",
-      email: profile?.email || "",
-      phone: profile?.phone || "",
-      birth_date: profile?.birth_date || null,
-      country: profile?.country || "",
-      depression: res?.depression_score || 0,
-      anxiety: res?.anxiety_score || 0,
-      overall: res?.overall_score || 0,
-      checked_in_at: new Date(),
-      icon_name: profile?.icon_name || "",
-    };
+      let updatedProfile = {
+        first_name: profile?.first_name || "",
+        last_name: profile?.last_name || "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
+        birth_date: profile?.birth_date || null,
+        country: profile?.country || "",
+        depression: res?.depression_score || 0,
+        anxiety: res?.anxiety_score || 0,
+        overall: res?.overall_score || 0,
+        checked_in_at: new Date(),
+        icon_name: profile?.icon_name || "",
+      };
 
       await updateUser(updatedProfile);
       setProfile(updatedProfile);
@@ -329,7 +337,7 @@ export default function EmojiPage() {
       console.log("Error calculate new mental score: ", error);
       setScore(mockScore);
     }
-  }
+  };
 
   const handleClose = () => {
     Alert.alert(
@@ -452,7 +460,7 @@ export default function EmojiPage() {
               </Pressable>
             </View>
 
-            {/* Diary Modal */}
+            {/* Diary Modal - REMAINS HERE */}
             <Modal
               animationType="fade"
               transparent={true}
@@ -574,7 +582,7 @@ export default function EmojiPage() {
               </TouchableWithoutFeedback>
             </Modal>
 
-            {/* Date Time Picker */}
+            {/* Date Time Picker Toggle */}
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>{nowText}</Text>
               <Pressable
@@ -585,40 +593,6 @@ export default function EmojiPage() {
                 <Text style={styles.pillBtnText}>CHANGE</Text>
               </Pressable>
             </View>
-
-            {/* iOS: use Modal */}
-            {Platform.OS === "ios" && showPicker && (
-              <Modal
-                animationType="fade"
-                transparent={true}
-                visible={isOpen}
-                onRequestClose={() => setIsOpen(false)}
-              >
-                <Pressable
-                  style={styles.modalOverlay}
-                  onPress={() => setShowPicker(false)}
-                >
-                  <DateTimePickerPage
-                    dateTime={dateTime}
-                    setDateTime={(newDate) => setDateTime(newDate)}
-                    onClose={() => setShowPicker(false)}
-                  />
-                </Pressable>
-              </Modal>
-            )}
-
-            {/* Android: render picker directly */}
-            {Platform.OS === "android" && showPicker && (
-              <DateTimePicker
-                value={dateTime}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowPicker(false); // closes picker automatically
-                  if (selectedDate) setDateTime(selectedDate);
-                }}
-              />
-            )}
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
@@ -632,28 +606,67 @@ export default function EmojiPage() {
               </Pressable>
             </View>
 
-            {/* Score Modal */}
-            {/* {loadingScore && <LoadingCircle />} */}
-
+            {/* Score Modal - REMAINS HERE */}
             <Modal
               animationType="fade"
               transparent={true}
               visible={openScore}
-              onRequestClose={() => { setOpenScore(false); setScore(null); }}
-            >              
-              <View style={styles.modalOverlay}>  
+              onRequestClose={() => {
+                setOpenScore(false);
+                setScore(null);
+              }}
+            >
+              <View style={styles.modalOverlay}>
                 {score ? (
-                  <NewScoreDisplay data={score} onClose={() => { setOpenScore(false); setScore(null); }} />
+                  <NewScoreDisplay
+                    data={score}
+                    onClose={() => {
+                      setOpenScore(false);
+                      setScore(null);
+                    }}
+                  />
                 ) : (
                   <ActivityIndicator color="#fff" />
                 )}
               </View>
             </Modal>
-
           </View>
         </View>
       </View>
-      
+
+      {/* 🛑 CRITICAL FIX: MOVE iOS DATE PICKER MODAL OUTSIDE THE CARD VIEW */}
+      {Platform.OS === "ios" && showPicker && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showPicker}
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowPicker(false)}
+          >
+            <DateTimePickerPage
+              dateTime={dateTime}
+              setDateTime={(newDate) => setDateTime(newDate)}
+              onClose={() => setShowPicker(false)}
+            />
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Android: render picker directly */}
+      {Platform.OS === "android" && showPicker && (
+        <DateTimePicker
+          value={dateTime}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowPicker(false); // closes picker automatically
+            if (selectedDate) setDateTime(selectedDate);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -882,10 +895,10 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 8, // Android shadow
     maxWidth: 700,
-    width: Dimensions.get('window').width * 0.9, // Adjust width for mobile screen
+    width: Dimensions.get("window").width * 0.9, // Adjust width for mobile screen
     marginVertical: 20,
-    alignSelf: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    alignSelf: "center",
+    alignItems: "center",
+    position: "relative",
   },
 });
