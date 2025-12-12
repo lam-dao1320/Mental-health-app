@@ -1,8 +1,11 @@
 // app/(tabs)/emoji.tsx
 
 import { useUserContext } from "@/context/authContext";
+import { calculateNewScore } from "@/lib/geminiAI_func";
 import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
+import { NewScoreData } from "@/lib/object_types";
 import { supabase } from "@/lib/supabase";
+import { updateUser } from "@/lib/user_crud";
 import { AntDesign } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
@@ -11,8 +14,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Easing,
   Keyboard,
   KeyboardAvoidingView,
@@ -29,6 +34,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePickerPage from "../dateTimePicker";
+import NewScoreDisplay from "./scoreDisplay";
 
 type MoodEntry = {
   value: number;
@@ -39,6 +45,8 @@ type MoodEntry = {
   displayDate: string;
   displayTime: string;
 };
+
+const mockScore = {"anxiety_score": 15, "depression_score": 18, "overall_score": 29, "summary": "The user is experiencing continued sadness and stress due to uncompleted tasks. Their emotional state shows a slight decline, with increased depression and anxiety contributing to a worsening of overall wellness."}
 
 const MOODS = [
   { emoji: "😡", label: "angry", word: "ANGRY" },
@@ -62,8 +70,12 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function EmojiPage() {
-  const { profile, records, setRecords } = useUserContext();
+  const { profile, setProfile, setRecords } = useUserContext();
   const router = useRouter();
+
+  const [score, setScore] = useState<NewScoreData | null>(null);
+  const [openScore, setOpenScore] = useState(false);
+  const [loadingScore, setLoadingScore] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [textDiary, setTextDiary] = useState("");
@@ -176,6 +188,9 @@ export default function EmojiPage() {
   // ✅ Save diary (and link only if an unlinked mood exists for the time OR if currentRecordId is set)
   const onSaveDiary = async () => {
     if (!profile) return;
+    setIsOpen(false);
+    setLoadingScore(true);
+    setOpenScore(true);
 
     try {
       const cutoff = dateTime.toISOString();
@@ -260,21 +275,61 @@ export default function EmojiPage() {
         });
       }
 
-      Alert.alert("Success", "Diary Saved!");
+      calculate();
+
+      // Alert.alert("Success", "Diary Saved!");
       // Reset current mood ID after successful save/link
       setCurrentRecordId(null);
       fetchRecords();
       setTextDiary("");
-      setIsOpen(false);
+      
     } catch (err) {
       Alert.alert(
         "Error",
         err instanceof Error ? err.message : "Something went wrong"
       );
       console.error(err);
+    } finally {
+      setLoadingScore(false);
     }
     setShowPicker(false);
   };
+
+  const calculate = async () => {
+
+    console.log("Profile: ", profile);
+    console.log("Mood: ", mood);
+    console.log("Diary: ", textDiary);
+    let status = { emoji: mood.label, diary: textDiary };
+
+    try {
+      const resData = await calculateNewScore(profile, status);
+      const res: NewScoreData = typeof resData === "string" ? JSON.parse(resData) : resData;
+      // const res = mockScore;
+      setScore(res);
+      console.log("Score response: ", res);
+
+    let updatedProfile = {
+      first_name: profile?.first_name || "",
+      last_name: profile?.last_name || "",
+      email: profile?.email || "",
+      phone: profile?.phone || "",
+      birth_date: profile?.birth_date || null,
+      country: profile?.country || "",
+      depression: res?.depression_score || 0,
+      anxiety: res?.anxiety_score || 0,
+      overall: res?.overall_score || 0,
+      checked_in_at: new Date(),
+      icon_name: profile?.icon_name || "",
+    };
+
+      await updateUser(updatedProfile);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.log("Error calculate new mental score: ", error);
+      setScore(mockScore);
+    }
+  }
 
   const handleClose = () => {
     Alert.alert(
@@ -576,9 +631,29 @@ export default function EmojiPage() {
                 <Text style={styles.pillBtnText}>REPORT</Text>
               </Pressable>
             </View>
+
+            {/* Score Modal */}
+            {/* {loadingScore && <LoadingCircle />} */}
+
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={openScore}
+              onRequestClose={() => { setOpenScore(false); setScore(null); }}
+            >              
+              <View style={styles.modalOverlay}>  
+                {score ? (
+                  <NewScoreDisplay data={score} onClose={() => { setOpenScore(false); setScore(null); }} />
+                ) : (
+                  <ActivityIndicator color="#fff" />
+                )}
+              </View>
+            </Modal>
+
           </View>
         </View>
       </View>
+      
     </SafeAreaView>
   );
 }
@@ -796,5 +871,21 @@ const styles = StyleSheet.create({
     color: "#1D1D1F",
     fontWeight: "700",
     fontFamily: "Noto Sans HK",
+  },
+  scoreCard: {
+    backgroundColor: "#F9F9FB",
+    padding: 45,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8, // Android shadow
+    maxWidth: 700,
+    width: Dimensions.get('window').width * 0.9, // Adjust width for mobile screen
+    marginVertical: 20,
+    alignSelf: 'center',
+    alignItems: 'center',
+    position: 'relative',
   },
 });
