@@ -116,7 +116,7 @@ const ScoreCircle: React.FC<ScoreCircleProps> = ({ label, score, type }) => {
         color={label === "DEPRESSION" ? '#F49790' : label === "ANXIETY" ? '#ACD1C9' : '#F4CA90'}>
         {/* Content inside the circle (React Native Text components) */}
         <Text style={styles.levelText}>
-          {level.toUpperCase()}
+          {score}/40
         </Text>
         <Text style={styles.emojiText}>
           {emoji}
@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   levelText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#222',
     textAlign: 'center',
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     fontFamily: "Noto Sans HK",
   },
   infoBox: {
-    marginTop: 10,
+    // marginTop: 10,
     padding: 12,
     borderRadius: 12,
     backgroundColor: "#F9F9FB",
