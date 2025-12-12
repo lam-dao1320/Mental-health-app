@@ -1,5 +1,31 @@
 import { activitiesSchema, activityAI, planAI, plansSchema, scoreAI, scoreSchema } from "./geminiAI";
 
+const mockActivity = {"chosen_category": "Mindful Breathing", "activities": [{"name": "Box Breathing", "description": "Inhale slowly for 4 counts, hold your breath for 4 counts, exhale slowly for 4 counts, then hold your breath again for 4 counts. Repeat this cycle several times.", "link": "https://www.youtube.com/watch?v=F0B0fQ7u-20"}, {"name": "4-7-8 Breathing", "description": "Inhale quietly through your nose for 4 counts, hold your breath for a count of 7, and then exhale completely through your mouth, making a 'whoosh' sound, for a count of 8. Repeat for 3-4 cycles.", "link": "https://www.youtube.com/watch?v=YRPh_Ghnw04"}, {"name": "Diaphragmatic Breathing (Belly Breathing)", "description": "Sit comfortably and place one hand on your chest and the other on your belly. Breathe in deeply through your nose, allowing your belly to rise. Exhale slowly through pursed lips, feeling your belly fall. Focus on making your belly move more than your chest.", "link": "https://www.youtube.com/watch?v=0hK206e2v5I"}]};
+const mockPlan = {
+  "chosen_type": "Nature/Movement",
+  "plan_activities": [
+    {
+      "name": "Weekend Hiking Getaway",
+      "type": "Nature/Movement",
+      "rationale": "Engaging in a multi-day outdoor experience combines physical exertion with nature immersion, proven to reduce stress and improve mood.",
+      "details": "Plan a 2-3 day hiking trip to a national or state park. This involves researching trails, packing essentials, and spending extended time disconnected in nature, which can significantly alleviate mild depression and anxiety by fostering a sense of accomplishment and perspective."
+    },
+    {
+      "name": "Weekly Scenic Bike Ride",
+      "type": "Nature/Movement",
+      "rationale": "Consistent moderate physical activity in a natural setting boosts endorphins and provides a regular mental break from daily stressors.",
+      "details": "Identify a scenic bike path or trail near you and commit to a 1-2 hour ride once a week. The rhythmic motion of cycling combined with fresh air and changing scenery offers a meditative quality, helping to reduce anxiety and uplift mood over time."
+    },
+    {
+      "name": "Mindful Nature Walk & Photography",
+      "type": "Nature/Movement",
+      "rationale": "Combining gentle movement with a creative, observational task encourages mindfulness and appreciation for the natural world, diverting focus from internal stressors.",
+      "details": "Take a dedicated 30-60 minute walk in a local park or botanical garden, focusing on observing details and perhaps capturing them with your phone camera. This practice encourages present-moment awareness and connection with your surroundings, which can be a powerful antidote to mild anxiety and depressive thoughts."
+    }
+  ]
+}
+const mockScore = {"anxiety_score": 5, "depression_score": 8, "overall_score": 12, "summary": "The user is experiencing significant relief and reduced stress after completing a major project. This positive milestone has improved their anxiety and overall emotional state."};
+
 export async function suggestActivities(status: string) {
     // Construct the prompt for the AI model
     const prompt = 
@@ -27,12 +53,14 @@ export async function suggestActivities(status: string) {
         if (!response.text) {
             throw new Error("AI response text is empty");
         }
+        // console.log("Activity response: ", response);
         const jsonStr = response.text.trim();
+        console.log("Activity: ", jsonStr);
         return jsonStr;
 
     } catch (error) {
         console.error("Error generating activity suggestions:", error);
-        throw error;
+        return mockActivity;
     }
 }
 
@@ -86,14 +114,18 @@ export async function suggestPlans(profile: any) {
 
         // Parse the JSON string from the response text and return the object
         if (!response.text) {
+            // return mockScore;
             throw new Error("AI response text is empty");
         }
+
+        // console.log("Plan response: ", response);
         const jsonStr = response.text.trim();
+        console.log("Plan: ", jsonStr);
         return jsonStr;
 
     } catch (error) {
         console.error("Error generating wellness plans:", error);
-        throw error;
+        return mockPlan;
     }
 }
 
@@ -143,11 +175,14 @@ export async function calculateNewScore(profile: any, status: any) {
         if (!response.text) {
             throw new Error("AI response text is empty");
         }
+        // console.log("score response: ", response);
         const jsonStr = response.text.trim();
+        console.log("Score: ", jsonStr);
         return jsonStr;
 
     } catch (error) {
         console.error("Error evaluating new updated status:", error);
-        throw error;
+        return mockScore;
+        // throw error;
     }
 }

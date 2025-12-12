@@ -170,10 +170,10 @@ export default function SuggestPage() {
       const currentStatus = status(data);
 
       const aiActivityResponse = await suggestActivities(currentStatus);
-      setActivitySuggestion(JSON.parse(aiActivityResponse));
+      setActivitySuggestion(aiActivityResponse);
 
       const aiPlanResponse = await suggestPlans(profile);
-      setPlanSuggestion(JSON.parse(aiPlanResponse));
+      setPlanSuggestion(aiPlanResponse);
     } catch (error) {
       setError("Error fetching AI suggestions: " + error);
     } finally {
