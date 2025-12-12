@@ -1,8 +1,11 @@
 // app/(tabs)/emoji.tsx
 
 import { useUserContext } from "@/context/authContext";
+import { calculateNewScore } from "@/lib/geminiAI_func";
 import { addNewRecord, getRecordsByEmail } from "@/lib/mood_crud";
+import { NewScoreData } from "@/lib/object_types";
 import { supabase } from "@/lib/supabase";
+import { updateUser } from "@/lib/user_crud";
 import { AntDesign } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
@@ -11,8 +14,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
+  Dimensions,
   Easing,
   Keyboard,
   KeyboardAvoidingView,
@@ -29,6 +34,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import DateTimePickerPage from "../dateTimePicker";
+import NewScoreDisplay from "./scoreDisplay";
 
 type MoodEntry = {
   value: number;
@@ -38,6 +44,14 @@ type MoodEntry = {
   timestamp: string;
   displayDate: string;
   displayTime: string;
+};
+
+const mockScore = {
+  anxiety_score: 15,
+  depression_score: 18,
+  overall_score: 29,
+  summary:
+    "The user is experiencing continued sadness and stress due to uncompleted tasks. Their emotional state shows a slight decline, with increased depression and anxiety contributing to a worsening of overall wellness.",
 };
 
 const MOODS = [
@@ -62,8 +76,12 @@ const MAX_LEN = 500;
 const MIN_LEN = 0;
 
 export default function EmojiPage() {
-  const { profile, records, setRecords } = useUserContext();
+  const { profile, setProfile, setRecords } = useUserContext();
   const router = useRouter();
+
+  const [score, setScore] = useState<NewScoreData | null>(null);
+  const [openScore, setOpenScore] = useState(false);
+  const [loadingScore, setLoadingScore] = useState(false);
 
   const [isOpen, setIsOpen] = useState(false);
   const [textDiary, setTextDiary] = useState("");
@@ -153,7 +171,7 @@ export default function EmojiPage() {
       };
 
       const savedMood = await addNewRecord(newRecord);
-      setCurrentRecordId(savedMood.id);
+      setCurrentRecordId(savedMood.id); // SUCCESSFUL MOOD ID IS SAVED HERE
       fetchRecords();
     } catch (err) {
       console.error(err instanceof Error ? err.message : err);
@@ -173,72 +191,152 @@ export default function EmojiPage() {
 
   const handleDiaryToggle = () => setIsOpen(!isOpen);
 
-  // ✅ Save diary linked to latest mood
+  // ✅ Save diary (and link only if an unlinked mood exists for the time OR if currentRecordId is set)
   const onSaveDiary = async () => {
     if (!profile) return;
+    setIsOpen(false);
+    setLoadingScore(true);
+    setOpenScore(true);
 
     try {
       const cutoff = dateTime.toISOString();
+      let moodToLink: { id: string; diary_id: string | null } | null = null;
+      let moodAlreadyLinked = false;
 
-      // fetch latest mood by matching with the date time
-      const { data: moods, error: moodErr } = await supabase
-        .from("mood_log")
-        .select("id, date, diary_id")
-        .eq("user_email", profile.email)
-        .eq("date", cutoff)
-        .order("date", { ascending: false })
-        .limit(1);
+      // PRIORITY 1: Check if a mood was saved THIS SESSION using the currentRecordId
+      if (currentRecordId) {
+        // Fetch the mood log by ID to ensure it exists and is unlinked
+        const { data: currentMood, error: currentMoodErr } = await supabase
+          .from("mood_log")
+          .select("id, diary_id")
+          .eq("id", currentRecordId)
+          .single();
 
-      if (moodErr) throw moodErr;
-      if (!moods || moods.length === 0) {
-        Alert.alert("Error", "No recent mood entry found in last 30 minutes.");
-        return;
+        if (currentMoodErr) throw currentMoodErr;
+
+        if (currentMood.diary_id) {
+          moodAlreadyLinked = true;
+          Alert.alert(
+            "Error",
+            "The current mood entry already has a diary linked."
+          );
+          return;
+        }
+
+        moodToLink = currentMood;
       }
 
-      const latest = moods[0];
-      if (latest.diary_id) {
-        Alert.alert("Error", "This mood already has a diary linked.");
-        return;
+      // PRIORITY 2: Fallback check for any other unlinked mood at the current exact time
+      if (!moodToLink) {
+        const { data: fallbackMoods, error: fallbackMoodErr } = await supabase
+          .from("mood_log")
+          .select("id, diary_id")
+          .eq("user_email", profile.email)
+          .eq("date", cutoff)
+          .is("diary_id", null)
+          .limit(1);
+
+        if (fallbackMoodErr) throw fallbackMoodErr;
+
+        if (fallbackMoods && fallbackMoods.length > 0) {
+          moodToLink = fallbackMoods[0];
+        }
       }
 
-      // create diary
+      // 2. If mood is already linked (only happens if currentRecordId was set and the fetch failed/showed linked), exit
+      if (moodAlreadyLinked) return;
+
+      // 3. Create diary entry
       const { data: diary, error: diaryErr } = await supabase
         .from("diary")
         .insert({
           user_email: profile.email,
           body: textDiary,
-          date: moods[0].date,
+          date: cutoff,
         })
-        .select("id") // ensure ID is returned
+        .select("id")
         .single();
 
       if (diaryErr || !diary) throw diaryErr ?? new Error("Diary not created");
+      const newDiaryId = diary.id;
 
-      // explicitly update mood_log
-      const { error: updateErr } = await supabase
-        .from("mood_log")
-        .update({ diary_id: diary.id })
-        .eq("id", latest.id)
-        .select("id, diary_id"); // force return, so we can debug
+      // 4. Conditional Link to Mood Log
+      if (moodToLink) {
+        // Mood found (either current session or fallback) and is unlinked -> Perform the update/link
+        const { error: updateErr } = await supabase
+          .from("mood_log")
+          .update({ diary_id: newDiaryId })
+          .eq("id", moodToLink.id);
 
-      if (updateErr) throw updateErr;
-      console.log("✅ mood_log updated:", {
-        moodId: latest.id,
-        linkedDiaryId: diary.id,
-      });
+        if (updateErr) throw updateErr;
 
-      Alert.alert("Success", "Diary linked to recent mood!");
+        console.log("✅ Diary saved and linked to existing mood:", {
+          moodId: moodToLink.id,
+          linkedDiaryId: newDiaryId,
+        });
+      } else {
+        // No unlinked mood found. Diary is saved standalone.
+        console.log("✅ Diary saved successfully (standalone entry).", {
+          diaryId: newDiaryId,
+        });
+      }
+
+      calculate();
+
+      // Alert.alert("Success", "Diary Saved!");
+      // Reset current mood ID after successful save/link
+      setCurrentRecordId(null);
       fetchRecords();
       setTextDiary("");
-      setIsOpen(false);
     } catch (err) {
       Alert.alert(
         "Error",
         err instanceof Error ? err.message : "Something went wrong"
       );
       console.error(err);
+    } finally {
+      setLoadingScore(false);
     }
-    setShowPicker(false);
+    // We keep setShowPicker(false) here, even though it's set earlier, as a failsafe
+    // to ensure no remnants of the date picker are left if this function were ever called
+    // while the picker was somehow active.
+    // setShowPicker(false); // Can be commented out or removed, but harmless.
+  };
+
+  const calculate = async () => {
+    console.log("Profile: ", profile);
+    console.log("Mood: ", mood);
+    console.log("Diary: ", textDiary);
+    let status = { emoji: mood.label, diary: textDiary };
+
+    try {
+      const resData = await calculateNewScore(profile, status);
+      const res: NewScoreData =
+        typeof resData === "string" ? JSON.parse(resData) : resData;
+      // const res = mockScore;
+      setScore(res);
+      console.log("Score response: ", res);
+
+      let updatedProfile = {
+        first_name: profile?.first_name || "",
+        last_name: profile?.last_name || "",
+        email: profile?.email || "",
+        phone: profile?.phone || "",
+        birth_date: profile?.birth_date || null,
+        country: profile?.country || "",
+        depression: res?.depression_score || 0,
+        anxiety: res?.anxiety_score || 0,
+        overall: res?.overall_score || 0,
+        checked_in_at: new Date(),
+        icon_name: profile?.icon_name || "",
+      };
+
+      await updateUser(updatedProfile);
+      setProfile(updatedProfile);
+    } catch (error) {
+      console.log("Error calculate new mental score: ", error);
+      setScore(mockScore);
+    }
   };
 
   const handleClose = () => {
@@ -362,7 +460,7 @@ export default function EmojiPage() {
               </Pressable>
             </View>
 
-            {/* Diary Modal */}
+            {/* Diary Modal - REMAINS HERE */}
             <Modal
               animationType="fade"
               transparent={true}
@@ -484,7 +582,7 @@ export default function EmojiPage() {
               </TouchableWithoutFeedback>
             </Modal>
 
-            {/* Date Time Picker */}
+            {/* Date Time Picker Toggle */}
             <View style={styles.pillRow}>
               <Text style={styles.pillText}>{nowText}</Text>
               <Pressable
@@ -495,40 +593,6 @@ export default function EmojiPage() {
                 <Text style={styles.pillBtnText}>CHANGE</Text>
               </Pressable>
             </View>
-
-            {/* iOS: use Modal */}
-            {Platform.OS === "ios" && showPicker && (
-              <Modal
-                animationType="fade"
-                transparent={true}
-                visible={showPicker}
-                onRequestClose={() => setShowPicker(false)}
-              >
-                <Pressable
-                  style={styles.modalOverlay}
-                  onPress={() => setShowPicker(false)}
-                >
-                  <DateTimePickerPage
-                    dateTime={dateTime}
-                    setDateTime={(newDate) => setDateTime(newDate)}
-                    onClose={() => setShowPicker(false)}
-                  />
-                </Pressable>
-              </Modal>
-            )}
-
-            {/* Android: render picker directly */}
-            {Platform.OS === "android" && showPicker && (
-              <DateTimePicker
-                value={dateTime}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setShowPicker(false); // closes picker automatically
-                  if (selectedDate) setDateTime(selectedDate);
-                }}
-              />
-            )}
 
             {/* Weekly Tracking */}
             <View style={styles.pillRow}>
@@ -541,9 +605,68 @@ export default function EmojiPage() {
                 <Text style={styles.pillBtnText}>REPORT</Text>
               </Pressable>
             </View>
+
+            {/* Score Modal - REMAINS HERE */}
+            <Modal
+              animationType="fade"
+              transparent={true}
+              visible={openScore}
+              onRequestClose={() => {
+                setOpenScore(false);
+                setScore(null);
+              }}
+            >
+              <View style={styles.modalOverlay}>
+                {score ? (
+                  <NewScoreDisplay
+                    data={score}
+                    onClose={() => {
+                      setOpenScore(false);
+                      setScore(null);
+                    }}
+                  />
+                ) : (
+                  <ActivityIndicator color="#fff" />
+                )}
+              </View>
+            </Modal>
           </View>
         </View>
       </View>
+
+      {/* 🛑 CRITICAL FIX: MOVE iOS DATE PICKER MODAL OUTSIDE THE CARD VIEW */}
+      {Platform.OS === "ios" && showPicker && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showPicker}
+          onRequestClose={() => setShowPicker(false)}
+        >
+          <Pressable
+            style={styles.modalOverlay}
+            onPress={() => setShowPicker(false)}
+          >
+            <DateTimePickerPage
+              dateTime={dateTime}
+              setDateTime={(newDate) => setDateTime(newDate)}
+              onClose={() => setShowPicker(false)}
+            />
+          </Pressable>
+        </Modal>
+      )}
+
+      {/* Android: render picker directly */}
+      {Platform.OS === "android" && showPicker && (
+        <DateTimePicker
+          value={dateTime}
+          mode="date"
+          display="default"
+          onChange={(event, selectedDate) => {
+            setShowPicker(false); // closes picker automatically
+            if (selectedDate) setDateTime(selectedDate);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -761,5 +884,21 @@ const styles = StyleSheet.create({
     color: "#1D1D1F",
     fontWeight: "700",
     fontFamily: "Noto Sans HK",
+  },
+  scoreCard: {
+    backgroundColor: "#F9F9FB",
+    padding: 45,
+    borderRadius: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 8, // Android shadow
+    maxWidth: 700,
+    width: Dimensions.get("window").width * 0.9, // Adjust width for mobile screen
+    marginVertical: 20,
+    alignSelf: "center",
+    alignItems: "center",
+    position: "relative",
   },
 });

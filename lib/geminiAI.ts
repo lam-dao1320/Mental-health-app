@@ -2,9 +2,11 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 const activityApiKey = process.env.EXPO_PUBLIC_ACTIVITY_API_KEY || "";
 const planApiKey = process.env.EXPO_PUBLIC_PLAN_API_KEY || "";
+const scoreApiKey = process.env.EXPO_PUBLIC_SCORE_API_KEY || "";
 
-export const activityAI = new GoogleGenAI({apiKey: activityApiKey});
-export const planAI = new GoogleGenAI({apiKey: planApiKey});
+export const activityAI = new GoogleGenAI({ apiKey: activityApiKey });
+export const planAI = new GoogleGenAI({ apiKey: planApiKey });
+export const scoreAI = new GoogleGenAI({ apiKey: scoreApiKey })
 
 export const activitiesSchema = {
   type: Type.OBJECT,
@@ -75,3 +77,32 @@ export const plansSchema = {
   },
   required: ['chosen_type', 'plan_activities'],
 };
+
+export const scoreSchema = {
+  type: Type.OBJECT,
+    description: 'An object containing the three updated wellness scores and the reasoning for the change.',
+    properties: {
+      depression_score: {
+        type: Type.INTEGER,
+        description: 'The NEW updated Depression Score (integer only).',
+      },
+      anxiety_score: {
+        type: Type.INTEGER,
+        description: 'The NEW updated Anxiety Score (integer only).',
+      },
+      overall_score: {
+        type: Type.INTEGER,
+        description: 'The NEW updated Overall Wellness Score (integer only).',
+      },
+      summary: {
+        type: Type.STRING,
+        description: 'A single, short summary (1-2 sentences) of the user\'s current emotional state and the general direction of the score change.',
+      },
+  },
+  required: [
+    'depression_score',
+    'anxiety_score',
+    'overall_score', 
+    'summary'
+  ],
+}

@@ -54,3 +54,10 @@ export interface QuestionnaireLog{
   user_email?: string;
   date: Date | null;
 }
+
+export type NewScoreData = {
+  depression_score: number;
+  anxiety_score: number;
+  overall_score: number;
+  summary: string;
+}

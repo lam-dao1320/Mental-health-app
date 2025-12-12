@@ -165,7 +165,7 @@ export default function BadgesPage() {
       {
         label: "First Badge",
         // Note: .jpg for nature folder
-        icon: require("@/assets/images/otherBadge/nature/1.jpg"),
+        icon: require("@/assets/images/otherBadge/nature/1.png"),
         earned: hasAnyBadge,
       },
 
@@ -173,13 +173,13 @@ export default function BadgesPage() {
       {
         label: "3-Day Streak",
         // Using unused Nature 2
-        icon: require("@/assets/images/otherBadge/nature/2.jpg"),
+        icon: require("@/assets/images/otherBadge/nature/2.png"),
         earned: false,
       },
       {
         label: "Weekly Review",
         // Using unused Nature 3
-        icon: require("@/assets/images/otherBadge/nature/3.jpg"),
+        icon: require("@/assets/images/otherBadge/nature/3.png"),
         earned: false,
       },
       // --- Tasks with NO images (Grey Circles) ---
