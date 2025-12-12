@@ -55,11 +55,11 @@ export async function suggestActivities(status: string) {
         }
         // console.log("Activity response: ", response);
         const jsonStr = response.text.trim();
-        console.log("Activity: ", jsonStr);
-        return jsonStr;
+        // console.log("Activity: ", jsonStr);
+        return JSON.parse(jsonStr);
 
     } catch (error) {
-        console.error("Error generating activity suggestions:", error);
+        console.log("Error generating activity suggestions:", error);
         return mockActivity;
     }
 }
@@ -120,11 +120,11 @@ export async function suggestPlans(profile: any) {
 
         // console.log("Plan response: ", response);
         const jsonStr = response.text.trim();
-        console.log("Plan: ", jsonStr);
-        return jsonStr;
+        // console.log("Plan: ", jsonStr);
+        return JSON.parse(jsonStr);
 
     } catch (error) {
-        console.error("Error generating wellness plans:", error);
+        console.log("Error generating wellness plans:", error);
         return mockPlan;
     }
 }
@@ -177,11 +177,11 @@ export async function calculateNewScore(profile: any, status: any) {
         }
         // console.log("score response: ", response);
         const jsonStr = response.text.trim();
-        console.log("Score: ", jsonStr);
-        return jsonStr;
+        // console.log("Score: ", jsonStr);
+        return JSON.parse(jsonStr);
 
     } catch (error) {
-        console.error("Error evaluating new updated status:", error);
+        console.log("Error evaluating new updated status:", error);
         return mockScore;
         // throw error;
     }
