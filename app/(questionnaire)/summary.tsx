@@ -93,6 +93,7 @@ export default function Summary() {
       anxiety: anxiety,
       overall: total,
       checked_in_at: new Date(),
+      icon_name: profile?.icon_name || "",
     };
     let newQuestionnaireLog = {
       user_email: profile?.email || "",

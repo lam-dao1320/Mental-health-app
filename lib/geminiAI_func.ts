@@ -1,4 +1,4 @@
-import { activitiesSchema, activityAI, planAI, plansSchema } from "./geminiAI";
+import { activitiesSchema, activityAI, planAI, plansSchema, scoreAI, scoreSchema } from "./geminiAI";
 
 export async function suggestActivities(status: string) {
     // Construct the prompt for the AI model
@@ -37,7 +37,7 @@ export async function suggestActivities(status: string) {
 }
 
 // Define the static, reusable part of the prompt
-const SCORING_GUIDE = `
+const PLANNING_GUIDE = `
   You are an AI Wellness Consultant and Action Planner. Analyze user scores based on these scales:
   - Depression Score: (0-4: minimal, 7-13: mild, 14-20: moderate, 21-27: moderately severe, 28+: severe)
   - Anxiety Score: (0-4: minimal, 5-9: mild, 10-14: moderate, 15+: severe)
@@ -79,7 +79,7 @@ export async function suggestPlans(profile: any) {
                 responseMimeType: "application/json",
                 responseSchema: plansSchema,
                 temperature: 0.5,
-                systemInstruction: SCORING_GUIDE,
+                systemInstruction: PLANNING_GUIDE,
             }
         });
         // console.log("AI Plan Response Text:\n", response.text?.trim());
@@ -93,6 +93,61 @@ export async function suggestPlans(profile: any) {
 
     } catch (error) {
         console.error("Error generating wellness plans:", error);
+        throw error;
+    }
+}
+
+const SCORING_GUIDE = `
+    You are an AI Wellness Evaluator. Your task is to analyze a user's new daily status update (an emoji and a diary entry) in the context of their current scores, and determine how each score should be adjusted (up or down).
+
+    Use these clinical ranges as context for the user's starting point:
+    - Depression Score: (0-4: minimal, 7-13: mild, 14-20: moderate, 21-27: moderately severe, 28+: severe)
+    - Anxiety Score: (0-4: minimal, 5-9: mild, 10-14: moderate, 15+: severe)
+    - Overall Wellness Score: (0-8: excellent, 9-16: good, 17-24: moderate concerns, 25-32: significant concerns, 33-40: severe concerns)
+
+    **Evaluation Task:**
+    1. Analyze the 'New Status' (emoji and diary) for positive progress, self-care, and mood improvement, or, conversely, signs of stress, regression, or negative coping.
+    2. Calculate a new score for Depression, Anxiety, and Overall Wellness based on the change described. **Scores must be integers.**
+    3. Provide a single, short summary (1-2 sentences) of the user's current emotional state and the general direction of the change.
+`;
+
+export async function calculateNewScore(profile: any, status: any) {
+    const prompt = `
+        // --- USER DATA FOR EVALUATION ---
+        **Current Scores (Starting Point):**
+        - Depression: ${profile.depression}
+        - Anxiety: ${profile.anxiety}
+        - Overall Wellness: ${profile.overall}
+
+        **New Status Update:**
+        - Today's status: ${status.emoji}
+        - Diary Entry: "${status.diary}"
+
+        **REQUIRED ACTION:** Using the Scoring Guide provided, analyze the New Status Update in context of the Current Scores and generate the three NEW, updated scores with a single. short summary of the emotional status.
+    `;
+
+    try {
+        const response = await scoreAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: scoreSchema,
+                temperature: 0.5,
+                systemInstruction: SCORING_GUIDE,
+            }
+        });
+        // console.log("AI Plan Response Text:\n", response.text?.trim());
+
+        // Parse the JSON string from the response text and return the object
+        if (!response.text) {
+            throw new Error("AI response text is empty");
+        }
+        const jsonStr = response.text.trim();
+        return jsonStr;
+
+    } catch (error) {
+        console.error("Error evaluating new updated status:", error);
         throw error;
     }
 }
